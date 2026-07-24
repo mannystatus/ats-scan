@@ -59,8 +59,9 @@
     border-bottom: 1px solid var(--line); padding-bottom: 18px; margin-bottom: 12px;
     flex-wrap: wrap; gap: 8px;
   }
-  #ats-root .brand { display: flex; align-items: center; gap: 10px; }
-  #ats-root .brand-mark { width: 30px; height: 30px; border-radius: 7px; display: block; flex: 0 0 auto; }
+  #ats-root .brand { display: flex; align-items: center; gap: 14px; }
+  #ats-root .brand-mark { height: 34px; width: auto; border-radius: 6px; display: block; flex: 0 0 auto; }
+  #ats-root .brand-div { width: 1px; height: 22px; background: var(--line); flex: 0 0 auto; }
   #ats-root h1 {
     font-family: 'Space Grotesk', 'Inter', sans-serif;
     font-size: 26px; font-weight: 600; margin: 0; letter-spacing: -0.01em;
@@ -494,7 +495,8 @@ function App() {
     <div className="wrap">
       <div className="masthead">
         <div className="brand">
-          <img className="brand-mark" src="favicon.svg" alt="ATS Scan logo" width="30" height="30" />
+          <img className="brand-mark" src="logo-lockup.svg" alt="mcx.pro" />
+          <div className="brand-div"></div>
           <h1>ATS<span>·</span>Scan</h1>
         </div>
         <div className="tag">resume × job posting compatibility</div>

@@ -1,10 +1,9 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-labelledby="title">
-  <title id="title">ATS Scan</title>
-  <rect width="400" height="400" rx="88" fill="#0B0F19"/>
-  <g transform="translate(140,110)">
+<svg width="800" height="260" viewBox="0 0 800 260" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="260" fill="#0B0F19"/>
+  <g transform="translate(60,60)">
     <path d="M40 0 L4 70 L40 140" fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
     <path d="M96 0 L132 70 L96 140" fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
     <line x1="58" y1="118" x2="78" y2="20" stroke="#5B9BFF" stroke-width="16" stroke-linecap="round"/>
   </g>
+  <text x="240" y="150" font-family="Helvetica, Arial, sans-serif" font-size="76" font-weight="800" fill="#FFFFFF" letter-spacing="-2">mcx<tspan fill="#5B9BFF">.pro</tspan></text>
 </svg>
