@@ -1,0 +1,13 @@
+{
+  "name": "ATS Scan",
+  "short_name": "ATS Scan",
+  "description": "Check your resume against any job posting for ATS compatibility — free, runs entirely in your browser.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0B0F14",
+  "theme_color": "#0B0F14",
+  "icons": [
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
