@@ -195,6 +195,9 @@
   #ats-root .kw.matched { color: var(--signal); border-color: rgba(61,220,132,0.35); background: rgba(61,220,132,0.08); }
   #ats-root .kw.missing { color: var(--fail); border-color: rgba(255,84,112,0.35); background: rgba(255,84,112,0.08); }
 
+  #ats-root .improve-card { margin-bottom: 16px; }
+  #ats-root .improve-note { font-size: 13px; color: var(--ink-dim); line-height: 1.55; margin: 0 0 14px; }
+
   #ats-root .rewrite {
     border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 10px; background: var(--panel-2);
   }
@@ -246,7 +249,7 @@
 </style>
 
 <script type="text/babel" data-presets="react">
-const { useState } = React;
+const { useState, useRef } = React;
 const LAST_UPDATED = 'July 24, 2026';
 
 function Gauge({ score, label }) {
@@ -336,7 +339,7 @@ const STOPWORDS = new Set([
   'experienced','work','working','works','job','jobs','role','roles','team','teams','company','companies',
   'candidate','candidates','position','positions','responsibilities','requirements','qualifications','skills',
   'skill','knowledge','understanding','plus','must','ideal','join','new','help','provide','related','apply',
-  'benefits','equal','opportunity','employer','nice'
+  'benefits','equal','opportunity','employer','nice','familiarity','familiar'
 ]);
 const SHORT_ALLOW = new Set(['ai', 'ml', 'ux', 'ui', 'qa', 'pm', 'bi', 'it']);
 
@@ -424,6 +427,8 @@ function App() {
   const [jdUrl, setJdUrl] = useState('');
   const [urlPhase, setUrlPhase] = useState('idle'); // idle | fetching | error
   const [urlErr, setUrlErr] = useState('');
+  const [missingCopied, setMissingCopied] = useState(false);
+  const resumeRef = useRef(null);
   const scanLines = ['Reading job posting', 'Reading resume', 'Checking formatting', 'Extracting keywords', 'Comparing overlap'];
 
   const [aiOpen, setAiOpen] = useState(false);
@@ -473,6 +478,21 @@ function App() {
       setOverlap(kw);
       setPhase('done');
     }, 900);
+  }
+
+  async function copyMissingKeywords() {
+    if (!overlap || overlap.missing.length === 0) return;
+    try {
+      await navigator.clipboard.writeText(overlap.missing.join(', '));
+      setMissingCopied(true);
+      setTimeout(() => setMissingCopied(false), 2200);
+    } catch (e) { /* clipboard permission denied — silently ignore */ }
+  }
+
+  function focusResume() {
+    if (!resumeRef.current) return;
+    resumeRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    resumeRef.current.focus({ preventScroll: true });
   }
 
   async function copyAiPrompt() {
@@ -542,7 +562,7 @@ function App() {
         </div>
         <div className="pane">
           <label>Your Resume</label>
-          <textarea placeholder="Paste your resume text here…" value={resume} onChange={e => setResume(e.target.value)} />
+          <textarea ref={resumeRef} placeholder="Paste your resume text here…" value={resume} onChange={e => setResume(e.target.value)} />
         </div>
       </div>
 
@@ -701,6 +721,32 @@ function App() {
                   {overlap.missing.length === 0 && <span style={{color:'var(--ink-dim)', fontSize:'13px'}}>None — good coverage.</span>}
                 </div>
               </div>
+            </div>
+          )}
+
+          {overlap && overlap.missing.length > 0 && (
+            <div className="card improve-card">
+              <h3>Improve your match score</h3>
+              <p className="improve-note">
+                These terms from the job posting weren't found in your resume. If they honestly reflect your experience, work them into your Skills section or naturally into a bullet point — each one you genuinely add raises your keyword-overlap score. Don't list a skill you don't actually have; keyword matching only helps if you can back it up when asked about it.
+              </p>
+              <div className="kw-list" style={{ marginBottom: 12 }}>
+                {overlap.missing.map((k, i) => <span key={i} className="kw missing">{k}</span>)}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button className="copy-btn" onClick={copyMissingKeywords}>Copy missing keywords</button>
+                <button className="copy-btn" onClick={focusResume}>Edit my resume ↑</button>
+                {missingCopied && <span className="copied-msg">Copied!</span>}
+              </div>
+            </div>
+          )}
+
+          {overlap && overlap.missing.length === 0 && (
+            <div className="card improve-card">
+              <h3>Improve your match score</h3>
+              <p className="improve-note" style={{ marginBottom: 0 }}>
+                Every extracted keyword from this posting already appears in your resume — good coverage. From here, the formatting checks above are the next place to look for score gains.
+              </p>
             </div>
           )}
         </div>
