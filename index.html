@@ -59,6 +59,8 @@
     border-bottom: 1px solid var(--line); padding-bottom: 18px; margin-bottom: 12px;
     flex-wrap: wrap; gap: 8px;
   }
+  #ats-root .brand { display: flex; align-items: center; gap: 10px; }
+  #ats-root .brand-mark { width: 30px; height: 30px; border-radius: 7px; display: block; flex: 0 0 auto; }
   #ats-root h1 {
     font-family: 'Space Grotesk', 'Inter', sans-serif;
     font-size: 26px; font-weight: 600; margin: 0; letter-spacing: -0.01em;
@@ -491,7 +493,10 @@ function App() {
   return (
     <div className="wrap">
       <div className="masthead">
-        <h1>ATS<span>·</span>Scan</h1>
+        <div className="brand">
+          <img className="brand-mark" src="favicon.svg" alt="ATS Scan logo" width="30" height="30" />
+          <h1>ATS<span>·</span>Scan</h1>
+        </div>
         <div className="tag">resume × job posting compatibility</div>
       </div>
       <div className="privacy-note"><span className="dot"></span>Runs entirely in your browser — your resume and job posting stay on your device and are never sent to ATS Scan or anyone else.</div>
