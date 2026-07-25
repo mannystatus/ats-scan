@@ -249,6 +249,12 @@
   #ats-root .history-delete:hover { color: var(--fail); }
   #ats-root .history-empty { font-size: 13px; color: var(--ink-dim); padding: 6px 0 2px; }
 
+  #ats-root .reality-card { margin: 0 0 30px; }
+  #ats-root .reality-note { font-size: 13px; color: var(--ink-dim); line-height: 1.6; margin: 0 0 12px; }
+  #ats-root .reality-note:last-child { margin-bottom: 0; }
+  #ats-root .reality-note a { color: var(--accent); }
+  #ats-root .reality-note b { color: var(--ink); }
+
   #ats-root .error { color: var(--fail); font-size: 13px; padding: 10px 0; }
   #ats-root .copy-btn {
     font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--accent);
@@ -289,6 +295,18 @@ function Gauge({ score, label }) {
       </svg>
       <div className="num">
         {pct}<small>{label || 'KEYWORD MATCH'}</small>
+      </div>
+    </div>
+  );
+}
+
+function KwGroup({ label, items, cls, emptyText }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      {label && <span className="ai-step-label">{label}</span>}
+      <div className="kw-list">
+        {items.map((k, i) => <span key={i} className={"kw " + cls}>{k}</span>)}
+        {items.length === 0 && <span style={{ color: 'var(--ink-dim)', fontSize: '13px' }}>{emptyText}</span>}
       </div>
     </div>
   );
@@ -361,13 +379,14 @@ const STOPWORDS = new Set([
   'experienced','work','working','works','job','jobs','role','roles','team','teams','company','companies',
   'candidate','candidates','position','positions','responsibilities','requirements','qualifications','skills',
   'skill','knowledge','understanding','plus','must','ideal','join','new','help','provide','related','apply',
-  'benefits','equal','opportunity','employer','nice','familiarity','familiar'
+  'benefits','equal','opportunity','employer','nice','familiarity','familiar',
+  'someone','need','needs','needed','senior','junior','background','focused','bonus'
 ]);
 const SHORT_ALLOW = new Set(['ai', 'ml', 'ux', 'ui', 'qa', 'pm', 'bi', 'it']);
 
 function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-function extractKeywords(jd) {
+function extractKeywords(jd, max = 20) {
   const raw = jd.match(/[a-zA-Z][a-zA-Z0-9+.#-]*/g) || [];
   const freq = new Map();
   for (const w of raw) {
@@ -380,7 +399,7 @@ function extractKeywords(jd) {
   }
   return [...freq.entries()]
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .slice(0, 20)
+    .slice(0, max)
     .map(([term]) => term);
 }
 
@@ -391,13 +410,52 @@ function tokenAppears(token, text) {
   return text.toLowerCase().includes(token.toLowerCase());
 }
 
+// Greenhouse's own recruiter keyword-search tool lets recruiters mark search
+// terms as "Required" (every term must match) or "Preferred" (any one term
+// matches) — see support.greenhouse.io "Search resumes for keywords". We
+// mirror that distinction here: if the posting has a "nice to have"-style
+// section, terms above it count double toward the score.
+const PREFERRED_HEADING_RE = /^(nice[- ]to[- ]haves?|preferred(?: qualifications| skills| experience)?|bonus(?: points?| skills)?|good to have|desired(?: skills| qualifications)?|pluses?|extra credit)\s*:?\s*$/i;
+const REQUIRED_WEIGHT = 2;
+const PREFERRED_WEIGHT = 1;
+
+function splitRequiredPreferred(jd) {
+  const lines = jd.split('\n');
+  let charCount = 0;
+  for (const raw of lines) {
+    const trimmed = raw.trim().replace(/^[-•*]\s*/, '');
+    if (trimmed && trimmed.length <= 40 && PREFERRED_HEADING_RE.test(trimmed)) {
+      return { required: jd.slice(0, charCount), preferred: jd.slice(charCount) };
+    }
+    charCount += raw.length + 1;
+  }
+  return { required: jd, preferred: '' };
+}
+
 function keywordOverlap(jd, resume) {
-  const keywords = extractKeywords(jd);
-  if (keywords.length === 0) return null;
-  const matched = keywords.filter(k => tokenAppears(k, resume));
-  const missing = keywords.filter(k => !matched.includes(k));
-  const score = Math.round((matched.length / keywords.length) * 100);
-  return { score, matched, missing };
+  const { required, preferred } = splitRequiredPreferred(jd);
+  const hasSplit = preferred.trim().length > 0;
+  const requiredKeywords = extractKeywords(required, hasSplit ? 15 : 20);
+  const preferredKeywordsRaw = hasSplit ? extractKeywords(preferred, 8) : [];
+  const preferredKeywords = preferredKeywordsRaw.filter(k => !requiredKeywords.includes(k));
+  if (requiredKeywords.length === 0 && preferredKeywords.length === 0) return null;
+
+  const requiredMatched = requiredKeywords.filter(k => tokenAppears(k, resume));
+  const requiredMissing = requiredKeywords.filter(k => !requiredMatched.includes(k));
+  const preferredMatched = preferredKeywords.filter(k => tokenAppears(k, resume));
+  const preferredMissing = preferredKeywords.filter(k => !preferredMatched.includes(k));
+
+  const totalWeight = requiredKeywords.length * REQUIRED_WEIGHT + preferredKeywords.length * PREFERRED_WEIGHT;
+  const earnedWeight = requiredMatched.length * REQUIRED_WEIGHT + preferredMatched.length * PREFERRED_WEIGHT;
+  const score = totalWeight > 0 ? Math.round((earnedWeight / totalWeight) * 100) : 0;
+
+  return {
+    score,
+    matched: [...requiredMatched, ...preferredMatched],
+    missing: [...requiredMissing, ...preferredMissing],
+    requiredMatched, requiredMissing, preferredMatched, preferredMissing,
+    hasPreferredSection: preferredKeywords.length > 0,
+  };
 }
 
 // --- Bring-your-own-AI bridge -----------------------------------------
@@ -484,6 +542,7 @@ function App() {
 
   const [history, setHistory] = useState(() => loadHistory());
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [realityOpen, setRealityOpen] = useState(false);
 
   const [aiOpen, setAiOpen] = useState(false);
   const [aiCopied, setAiCopied] = useState(false);
@@ -680,6 +739,32 @@ function App() {
         )}
       </div>
 
+      <div className="card reality-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <h3 style={{ marginBottom: 0 }}>How real ATS scoring actually works</h3>
+          <button className={"collapse-toggle reality-toggle" + (realityOpen ? ' open' : '')} onClick={() => setRealityOpen(!realityOpen)}>
+            <span className="chev">▸</span> {realityOpen ? 'Hide' : 'Show'}
+          </button>
+        </div>
+
+        {realityOpen && (
+          <div style={{ marginTop: 16 }}>
+            <p className="reality-note">
+              <b>The common myth:</b> a bot reads your resume, computes a 0–100 score against the job description, and auto-rejects you below some threshold. For at least one major ATS, that's not how it works.
+            </p>
+            <p className="reality-note">
+              <b>How Greenhouse (a widely-used ATS) actually works, per its own support docs:</b> resumes are parsed by ML models into structured fields — skills, job titles, dates, companies — for a recruiter to review. Greenhouse's core product does not auto-score or auto-reject applicants. Recruiters can run a manual keyword search and choose terms as <b>"Required"</b> (every term must match) or <b>"Preferred"</b> (any one term matches), but that's a tool a human chooses to use, not something applied automatically to everyone who applies. A separate paid add-on ("Talent Matching") does produce a match tier, but Greenhouse is explicit that it's assistive AI that "does not automatically advance or reject candidates" — a human always makes the final call.
+            </p>
+            <p className="reality-note">
+              <b>What this means for the score above:</b> this tool's "keyword overlap" score is a simplified proxy, not a simulation of any specific company's ATS. What we've done is borrow Greenhouse's own Required/Preferred distinction — if you paste a posting with a "nice to have" or "preferred" section, terms above it are weighted twice as heavily as terms in that section, the same way a Greenhouse recruiter's search would treat them.
+            </p>
+            <p className="reality-note">
+              Sources: <a href="https://support.greenhouse.io/hc/en-us/articles/115004600186-Search-resumes-for-keywords" target="_blank" rel="noopener noreferrer">Greenhouse Support — Search resumes for keywords</a>, <a href="https://support.greenhouse.io/hc/en-us/articles/41396009937307-Talent-Matching" target="_blank" rel="noopener noreferrer">Greenhouse Support — Talent Matching</a>.
+            </p>
+          </div>
+        )}
+      </div>
+
       <div className="panes">
         <div className="pane">
           <label>Job Posting</label>
@@ -828,6 +913,7 @@ function App() {
                 <p>
                   {overlap.score >= 75 ? 'Strong overlap — most of the posting\'s key terms show up in your resume.' : overlap.score >= 50 ? 'Partial overlap — a keyword-based ATS will find some matches, but several important terms are missing.' : 'Low overlap — a keyword-based ATS may rank this resume low for this specific posting.'}
                   {' '}This is a simple word-match count, not an AI judgment of quality or fit — Local Mode can't tell relevance, tone, or seniority apart. For that, try "Use your own AI" above.
+                  {overlap.hasPreferredSection ? ' This posting has a separate "nice to have" section, so — mirroring how Greenhouse\'s own recruiter keyword search treats "Required" vs "Preferred" terms — required terms count double toward this score.' : ''}
                 </p>
               </div>
             </div>
@@ -847,17 +933,31 @@ function App() {
             <div className="grid2">
               <div className="card">
                 <h3>Keywords found ({overlap.matched.length})</h3>
-                <div className="kw-list">
-                  {overlap.matched.map((k, i) => <span key={i} className="kw matched">{k}</span>)}
-                  {overlap.matched.length === 0 && <span style={{color:'var(--ink-dim)', fontSize:'13px'}}>None detected.</span>}
-                </div>
+                {overlap.hasPreferredSection ? (
+                  <React.Fragment>
+                    <KwGroup label="Required (2x weight)" items={overlap.requiredMatched} cls="matched" emptyText="None detected." />
+                    <KwGroup label="Preferred / nice-to-have" items={overlap.preferredMatched} cls="matched" emptyText="None detected." />
+                  </React.Fragment>
+                ) : (
+                  <div className="kw-list">
+                    {overlap.matched.map((k, i) => <span key={i} className="kw matched">{k}</span>)}
+                    {overlap.matched.length === 0 && <span style={{color:'var(--ink-dim)', fontSize:'13px'}}>None detected.</span>}
+                  </div>
+                )}
               </div>
               <div className="card">
                 <h3>Keywords missing ({overlap.missing.length})</h3>
-                <div className="kw-list">
-                  {overlap.missing.map((k, i) => <span key={i} className="kw missing">{k}</span>)}
-                  {overlap.missing.length === 0 && <span style={{color:'var(--ink-dim)', fontSize:'13px'}}>None — good coverage.</span>}
-                </div>
+                {overlap.hasPreferredSection ? (
+                  <React.Fragment>
+                    <KwGroup label="Required (2x weight)" items={overlap.requiredMissing} cls="missing" emptyText="None — good coverage." />
+                    <KwGroup label="Preferred / nice-to-have" items={overlap.preferredMissing} cls="missing" emptyText="None — good coverage." />
+                  </React.Fragment>
+                ) : (
+                  <div className="kw-list">
+                    {overlap.missing.map((k, i) => <span key={i} className="kw missing">{k}</span>)}
+                    {overlap.missing.length === 0 && <span style={{color:'var(--ink-dim)', fontSize:'13px'}}>None — good coverage.</span>}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -868,9 +968,16 @@ function App() {
               <p className="improve-note">
                 These terms from the job posting weren't found in your resume. If they honestly reflect your experience, work them into your Skills section or naturally into a bullet point — each one you genuinely add raises your keyword-overlap score. Don't list a skill you don't actually have; keyword matching only helps if you can back it up when asked about it.
               </p>
-              <div className="kw-list" style={{ marginBottom: 12 }}>
-                {overlap.missing.map((k, i) => <span key={i} className="kw missing">{k}</span>)}
-              </div>
+              {overlap.hasPreferredSection ? (
+                <React.Fragment>
+                  <KwGroup label="Required (2x weight) — fix these first" items={overlap.requiredMissing} cls="missing" emptyText="None — all required terms are covered." />
+                  <KwGroup label="Preferred / nice-to-have" items={overlap.preferredMissing} cls="missing" emptyText="None — good coverage." />
+                </React.Fragment>
+              ) : (
+                <div className="kw-list" style={{ marginBottom: 12 }}>
+                  {overlap.missing.map((k, i) => <span key={i} className="kw missing">{k}</span>)}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                 <button className="copy-btn" onClick={copyMissingKeywords}>Copy missing keywords</button>
                 <button className="copy-btn" onClick={focusResume}>Edit my resume ↑</button>
