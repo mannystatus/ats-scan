@@ -458,6 +458,42 @@ function keywordOverlap(jd, resume) {
   };
 }
 
+// --- Knockout-style requirement detector -------------------------------
+// Workable's ATS supports yes/no "knockout questions" on the application
+// form that auto-reject a candidate before a human ever opens the resume —
+// entirely separate from any keyword score (see support.workable.com
+// "Auto-disqualify candidates using application form questions"). We can't
+// see the employer's actual application form, but we can flag posting
+// language that commonly turns into that kind of hard requirement, purely
+// as a heads-up — still 100% local text matching, no AI, no network call.
+const KNOCKOUT_PATTERNS = [
+  { label: 'Work authorization', re: /\b(must (?:already )?be authorized to work|work authorization|no (?:visa )?sponsorship|not (?:able|available) to sponsor|legally (?:authorized|eligible) to work)\b/i },
+  { label: 'On-site / location', re: /\b(on-?site (?:\d+ days|full[- ]time|required|only)|relocat(?:e|ion) (?:is )?required|must (?:live|reside|be located|be based) (?:in|near|within))\b/i },
+  { label: 'Security clearance', re: /\b(security clearance|active clearance|able to obtain (?:a )?clearance|u\.?s\.?\s*citizen(?:ship)?\s*(?:is )?required)\b/i },
+  { label: 'License or certification', re: /\b(valid driver'?s?\s*licen[sc]e|must (?:hold|have|possess) a (?:current |valid |active )?(?:license|licence|certification)|licensure required)\b/i },
+  { label: 'Minimum years of experience', re: /\b\d+\+?\s*(?:years?|yrs)\s*(?:of\s*)?(?:relevant\s*|professional\s*|direct\s*)?experience\s*(?:is\s*)?required\b/i },
+  { label: 'Degree requirement', re: /\b(bachelor'?s?\s*degree\s*(?:is\s*)?required|master'?s?\s*degree\s*(?:is\s*)?required|degree\s*(?:is\s*)?required|must have a (?:bachelor|master|ph\.?d))\b/i },
+  { label: 'Background check', re: /\b(background check\s*(?:is\s*)?required|must pass a background check|subject to a background check)\b/i },
+  { label: 'Physical requirement', re: /\b(able to lift (?:up to )?\d+|must be able to (?:stand|lift|carry))\b/i },
+  { label: 'Schedule / availability', re: /\b(must be (?:available|willing) to work (?:nights|weekends|holidays|on-?call|shifts)|shift work required|24\/7 availability)\b/i },
+];
+
+function detectKnockoutRequirements(jd) {
+  const sentences = jd.split(/\r?\n|(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean);
+  const found = [];
+  const seenLabels = new Set();
+  for (const s of sentences) {
+    for (const { label, re } of KNOCKOUT_PATTERNS) {
+      if (seenLabels.has(label)) continue;
+      if (re.test(s)) {
+        found.push({ label, snippet: s.length > 160 ? s.slice(0, 160) + '…' : s });
+        seenLabels.add(label);
+      }
+    }
+  }
+  return found;
+}
+
 // --- Bring-your-own-AI bridge -----------------------------------------
 // We never call any AI service ourselves. Instead we build a plain-text
 // prompt the user copies into whatever AI they already have (ChatGPT,
@@ -533,6 +569,7 @@ function App() {
   const [phase, setPhase] = useState('idle'); // idle | scanning | done
   const [checks, setChecks] = useState([]);
   const [overlap, setOverlap] = useState(null);
+  const [knockouts, setKnockouts] = useState([]);
   const [jdUrl, setJdUrl] = useState('');
   const [urlPhase, setUrlPhase] = useState('idle'); // idle | fetching | error
   const [urlErr, setUrlErr] = useState('');
@@ -584,11 +621,13 @@ function App() {
     setPhase('scanning');
     const local = localChecks(resume).sort((a, b) => statusRank(a.status) - statusRank(b.status));
     const kw = keywordOverlap(jd, resume);
+    const ko = detectKnockoutRequirements(jd);
     // Small delay purely so the scan animation is visible — everything here
     // already ran synchronously in the browser.
     setTimeout(() => {
       setChecks(local);
       setOverlap(kw);
+      setKnockouts(ko);
       setPhase('done');
       if (kw) {
         const entry = {
@@ -756,10 +795,13 @@ function App() {
               <b>How Greenhouse (a widely-used ATS) actually works, per its own support docs:</b> resumes are parsed by ML models into structured fields — skills, job titles, dates, companies — for a recruiter to review. Greenhouse's core product does not auto-score or auto-reject applicants. Recruiters can run a manual keyword search and choose terms as <b>"Required"</b> (every term must match) or <b>"Preferred"</b> (any one term matches), but that's a tool a human chooses to use, not something applied automatically to everyone who applies. A separate paid add-on ("Talent Matching") does produce a match tier, but Greenhouse is explicit that it's assistive AI that "does not automatically advance or reject candidates" — a human always makes the final call.
             </p>
             <p className="reality-note">
-              <b>What this means for the score above:</b> this tool's "keyword overlap" score is a simplified proxy, not a simulation of any specific company's ATS. What we've done is borrow Greenhouse's own Required/Preferred distinction — if you paste a posting with a "nice to have" or "preferred" section, terms above it are weighted twice as heavily as terms in that section, the same way a Greenhouse recruiter's search would treat them.
+              <b>How Workable (another widely-used ATS) actually works, per its own help docs:</b> candidate evaluation is entirely human too — hiring team members leave manual ratings (thumbs, stars, or numbers) on a scorecard per stage; there's no automatic resume score. Where Workable differs is <b>knockout questions</b>: employers can add yes/no questions to the application form itself, and answering "No" to one auto-rejects the candidate immediately, before a human ever opens the resume — logged with the specific question that triggered it. That's a real auto-reject mechanism, but it lives in the application form's questions, not in resume-text scoring.
             </p>
             <p className="reality-note">
-              Sources: <a href="https://support.greenhouse.io/hc/en-us/articles/115004600186-Search-resumes-for-keywords" target="_blank" rel="noopener noreferrer">Greenhouse Support — Search resumes for keywords</a>, <a href="https://support.greenhouse.io/hc/en-us/articles/41396009937307-Talent-Matching" target="_blank" rel="noopener noreferrer">Greenhouse Support — Talent Matching</a>.
+              <b>What this means for the score above:</b> this tool's "keyword overlap" score is a simplified proxy, not a simulation of any specific company's ATS. What we've done is borrow Greenhouse's own Required/Preferred distinction — if you paste a posting with a "nice to have" or "preferred" section, terms above it are weighted twice as heavily as terms in that section, the same way a Greenhouse recruiter's search would treat them. We've also borrowed Workable's knockout-question concept: if the posting contains language that commonly turns into that kind of hard yes/no requirement (work authorization, clearance, on-site location, a required degree or license), it shows up in a separate "Possible knockout requirements" card above — not folded into the score, since we can't see the employer's actual application form.
+            </p>
+            <p className="reality-note">
+              Sources: <a href="https://support.greenhouse.io/hc/en-us/articles/115004600186-Search-resumes-for-keywords" target="_blank" rel="noopener noreferrer">Greenhouse Support — Search resumes for keywords</a>, <a href="https://support.greenhouse.io/hc/en-us/articles/41396009937307-Talent-Matching" target="_blank" rel="noopener noreferrer">Greenhouse Support — Talent Matching</a>, <a href="https://help.workable.com/hc/en-us/articles/115012983547-Reviewing-and-evaluating-candidates" target="_blank" rel="noopener noreferrer">Workable Help — Reviewing and evaluating candidates</a>, <a href="https://help.workable.com/hc/en-us/articles/115012238688-Auto-disqualify-candidates-using-application-form-questions" target="_blank" rel="noopener noreferrer">Workable Help — Auto-disqualify candidates using application form questions</a>.
             </p>
           </div>
         )}
@@ -928,6 +970,21 @@ function App() {
               </div>
             ))}
           </div>
+
+          {knockouts.length > 0 && (
+            <div className="card" style={{ marginBottom: 16 }}>
+              <h3>Possible knockout requirements</h3>
+              <p className="improve-note">
+                Some ATS platforms — Workable, for one — support yes/no "knockout questions" on the application form that auto-reject a candidate before a human ever opens the resume, completely separate from any keyword score. We can't see the actual application form, but this posting contains language that commonly maps to that kind of hard requirement. Make sure you can honestly answer yes before applying:
+              </p>
+              {knockouts.map((k, i) => (
+                <div key={i} className="check-item warn">
+                  <div className="dot"></div>
+                  <div className="txt"><b>{k.label}</b><span>{k.snippet}</span></div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {overlap && (
             <div className="grid2">
