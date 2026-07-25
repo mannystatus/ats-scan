@@ -211,14 +211,14 @@
   }
 
   #ats-root .ai-card { margin: 0 0 30px; }
-  #ats-root .ai-toggle {
+  #ats-root .collapse-toggle {
     display: flex; align-items: center; gap: 8px; background: none; border: none; cursor: pointer;
     color: var(--ink-dim); font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 0;
     margin: -14px 0 24px;
   }
-  #ats-root .ai-toggle:hover { color: var(--accent); }
-  #ats-root .ai-toggle .chev { transition: transform 0.15s ease; display: inline-block; }
-  #ats-root .ai-toggle.open .chev { transform: rotate(90deg); }
+  #ats-root .collapse-toggle:hover { color: var(--accent); }
+  #ats-root .collapse-toggle .chev { transition: transform 0.15s ease; display: inline-block; }
+  #ats-root .collapse-toggle.open .chev { transform: rotate(90deg); }
   #ats-root .ai-steps { display: flex; flex-direction: column; gap: 18px; }
   #ats-root .ai-step-label {
     font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--accent);
@@ -226,6 +226,37 @@
   }
   #ats-root .ai-note { font-size: 12.5px; color: var(--ink-dim); line-height: 1.6; margin: 0 0 14px; }
   #ats-root .copied-msg { color: var(--signal); font-size: 12px; margin-left: 10px; }
+
+  #ats-root .history-card { margin: 0 0 30px; }
+  #ats-root .history-note { font-size: 12.5px; color: var(--ink-dim); line-height: 1.6; margin: 0 0 14px; }
+  #ats-root .history-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  #ats-root .history-item {
+    display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2);
+    flex-wrap: wrap;
+  }
+  #ats-root .history-item.applied { border-color: rgba(61,220,132,0.35); }
+  #ats-root .history-score {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px;
+    flex: 0 0 auto; width: 42px; text-align: center;
+  }
+  #ats-root .history-main { flex: 1 1 240px; min-width: 0; }
+  #ats-root .history-title {
+    font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;
+  }
+  #ats-root .history-date { font-size: 11.5px; color: var(--ink-dim); font-family: 'IBM Plex Mono', monospace; }
+  #ats-root .history-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+  #ats-root .applied-btn {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; border-radius: 6px;
+    padding: 5px 10px; cursor: pointer; border: 1px solid var(--line); background: none; color: var(--ink-dim);
+  }
+  #ats-root .applied-btn:hover { border-color: var(--accent); color: var(--accent); }
+  #ats-root .applied-btn.is-applied { color: var(--signal); border-color: rgba(61,220,132,0.35); background: rgba(61,220,132,0.08); }
+  #ats-root .history-delete {
+    background: none; border: none; color: var(--ink-dim); cursor: pointer; font-size: 15px; line-height: 1; padding: 4px 6px;
+  }
+  #ats-root .history-delete:hover { color: var(--fail); }
+  #ats-root .history-empty { font-size: 13px; color: var(--ink-dim); padding: 6px 0 2px; }
 
   #ats-root .error { color: var(--fail); font-size: 13px; padding: 10px 0; }
   #ats-root .copy-btn {
@@ -418,6 +449,35 @@ function parseAiResponse(raw) {
   }
 }
 
+// --- Scan history --------------------------------------------------------
+// Stored in localStorage only — never sent anywhere. We deliberately save
+// just a title snippet + score + applied status, not the full resume or
+// job posting text, to keep what's persisted on disk minimal.
+
+const HISTORY_KEY = 'ats-scan-history-v1';
+
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveHistory(list) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+  } catch (e) { /* storage unavailable (private mode, quota, etc.) — skip silently */ }
+}
+
+function jdTitleFrom(jd) {
+  const line = (jd.split('\n').find(l => l.trim().length > 3) || '').trim();
+  if (!line) return 'Untitled posting';
+  return line.length > 90 ? line.slice(0, 90) + '…' : line;
+}
+
 function App() {
   const [jd, setJd] = useState('');
   const [resume, setResume] = useState('');
@@ -430,6 +490,9 @@ function App() {
   const [missingCopied, setMissingCopied] = useState(false);
   const resumeRef = useRef(null);
   const scanLines = ['Reading job posting', 'Reading resume', 'Checking formatting', 'Extracting keywords', 'Comparing overlap'];
+
+  const [history, setHistory] = useState(() => loadHistory());
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const [aiOpen, setAiOpen] = useState(false);
   const [aiCopied, setAiCopied] = useState(false);
@@ -477,7 +540,44 @@ function App() {
       setChecks(local);
       setOverlap(kw);
       setPhase('done');
+      if (kw) {
+        const entry = {
+          id: Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+          date: Date.now(),
+          title: jdTitleFrom(jd),
+          score: kw.score,
+          applied: false,
+          appliedAt: null,
+        };
+        setHistory(h => {
+          const next = [entry, ...h].slice(0, 200);
+          saveHistory(next);
+          return next;
+        });
+      }
     }, 900);
+  }
+
+  function toggleApplied(id) {
+    setHistory(h => {
+      const next = h.map(e => e.id === id ? { ...e, applied: !e.applied, appliedAt: !e.applied ? Date.now() : null } : e);
+      saveHistory(next);
+      return next;
+    });
+  }
+
+  function deleteHistoryEntry(id) {
+    setHistory(h => {
+      const next = h.filter(e => e.id !== id);
+      saveHistory(next);
+      return next;
+    });
+  }
+
+  function clearHistory() {
+    if (!window.confirm('Clear your entire scan history? This can\'t be undone.')) return;
+    setHistory([]);
+    saveHistory([]);
   }
 
   async function copyMissingKeywords() {
@@ -542,6 +642,53 @@ function App() {
       </div>
       <div className="privacy-note"><span className="dot"></span>Runs entirely in your browser — your resume and job posting stay on your device and are never sent to ATS Scan or anyone else.</div>
 
+      <div className="card history-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <h3 style={{ marginBottom: 0 }}>Your scan history ({history.length})</h3>
+          <button className={"collapse-toggle history-toggle" + (historyOpen ? ' open' : '')} onClick={() => setHistoryOpen(!historyOpen)}>
+            <span className="chev">▸</span> {historyOpen ? 'Hide' : 'Show'}
+          </button>
+        </div>
+
+        {historyOpen && (
+          <div style={{ marginTop: 16 }}>
+            <p className="history-note">
+              Every scan is saved here automatically so you can track which postings you've checked and mark the ones you've applied to. Only the posting's title line, the date, and your score are saved — never the full resume or posting text — and it's all stored in this browser only (localStorage), never sent to ATS Scan.
+            </p>
+
+            {history.length === 0 && (
+              <div className="history-empty">No scans yet — run one below and it'll show up here.</div>
+            )}
+
+            {history.length > 0 && (
+              <React.Fragment>
+                <div className="history-list">
+                  {history.map(h => (
+                    <div key={h.id} className={"history-item" + (h.applied ? ' applied' : '')}>
+                      <div className="history-score" style={{ color: h.score >= 75 ? 'var(--signal)' : h.score >= 50 ? 'var(--warn)' : 'var(--fail)' }}>{h.score}</div>
+                      <div className="history-main">
+                        <span className="history-title">{h.title}</span>
+                        <span className="history-date">
+                          {new Date(h.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                          {h.applied && h.appliedAt ? ' · applied ' + new Date(h.appliedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''}
+                        </span>
+                      </div>
+                      <div className="history-actions">
+                        <button className={"applied-btn" + (h.applied ? ' is-applied' : '')} onClick={() => toggleApplied(h.id)}>
+                          {h.applied ? '✓ Applied' : 'Mark applied'}
+                        </button>
+                        <button className="history-delete" onClick={() => deleteHistoryEntry(h.id)} title="Remove from history" aria-label="Remove from history">×</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button className="copy-btn" onClick={clearHistory}>Clear history</button>
+              </React.Fragment>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="panes">
         <div className="pane">
           <label>Job Posting</label>
@@ -579,7 +726,7 @@ function App() {
       <div className="card ai-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <h3 style={{ marginBottom: 0 }}>Use your own AI (optional)</h3>
-          <button className={"ai-toggle" + (aiOpen ? ' open' : '')} onClick={() => setAiOpen(!aiOpen)}>
+          <button className={"collapse-toggle ai-toggle" + (aiOpen ? ' open' : '')} onClick={() => setAiOpen(!aiOpen)}>
             <span className="chev">▸</span> {aiOpen ? 'Hide' : 'Show steps'}
           </button>
         </div>
@@ -755,7 +902,7 @@ function App() {
       <footer className="site-footer">
         <div>
           <h4>Your data &amp; privacy</h4>
-          <p>All processing happens locally in your browser. The job posting and resume text you paste are never uploaded, transmitted, or stored on any ATS Scan server — we don't have one, and no analytics on this site ever sees the content of your resume or job posting. Closing or reloading this page clears everything. We don't set up user accounts. We do use Google Analytics to see aggregate traffic (pages visited, general location, device type) — it sets standard analytics cookies and works the same way it does on most websites, but it never receives the text you paste into the boxes above. The one exception to the "nothing leaves your device" rule is the optional "Use your own AI" section: if you choose to copy the generated prompt into ChatGPT, Claude, Gemini, or another AI, that text goes to whichever service you pasted it into, subject to that service's own privacy policy — that's a step you take yourself, not something ATS Scan sends on your behalf.</p>
+          <p>All processing happens locally in your browser. The job posting and resume text you paste are never uploaded, transmitted, or stored on any ATS Scan server — we don't have one, and no analytics on this site ever sees the content of your resume or job posting. Closing or reloading this page clears the text in the boxes above. The one thing that does persist is your scan history — the posting's title line, the date, and your score, saved to this browser's local storage so you can track what you've checked and applied to; it stays on this device and is never transmitted anywhere, and you can clear it anytime from the "Your scan history" section. We don't set up user accounts. We do use Google Analytics to see aggregate traffic (pages visited, general location, device type) — it sets standard analytics cookies and works the same way it does on most websites, but it never receives the text you paste into the boxes above or your scan history. The one exception to the "nothing leaves your device" rule is the optional "Use your own AI" section: if you choose to copy the generated prompt into ChatGPT, Claude, Gemini, or another AI, that text goes to whichever service you pasted it into, subject to that service's own privacy policy — that's a step you take yourself, not something ATS Scan sends on your behalf.</p>
         </div>
         <div>
           <h4>Terms of use</h4>
