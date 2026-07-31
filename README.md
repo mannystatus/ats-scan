@@ -1,6 +1,6 @@
-# ATS Scan
+# ResumeChkr
 
-**Live site:** https://mannystatus.github.io/ats-scan/
+**Live site:** https://resumechkr.com/
 
 A resume ↔ job posting compatibility checker. Everything runs client-side in the browser:
 

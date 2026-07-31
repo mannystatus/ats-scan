@@ -1,6 +1,6 @@
 {
-  "name": "ATS Scan",
-  "short_name": "ATS Scan",
+  "name": "ResumeChkr",
+  "short_name": "ResumeChkr",
   "description": "Check your resume against any job posting for ATS compatibility — free, runs entirely in your browser.",
   "start_url": "./index.html",
   "display": "standalone",

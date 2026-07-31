@@ -2,39 +2,43 @@
 <html lang="en">
 <head>
 <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-1WY06LC499"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
+  // Default to denied until the visitor accepts the cookie banner (Google Consent Mode v2).
+  gtag('consent', 'default', { 'analytics_storage': 'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1WY06LC499"></script>
+<script>
   gtag('js', new Date());
-
   gtag('config', 'G-1WY06LC499');
 </script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ATS Scan — resume &times; job posting compatibility</title>
+<title>ResumeChkr — resume &times; job posting compatibility</title>
 <meta name="description" content="Check your resume against any job posting for ATS compatibility — free, runs 100% in your browser, no signup, no data uploaded. Optionally use your own AI for a deeper score." />
 <meta name="theme-color" content="#0B0F14" />
 
-<link rel="canonical" href="https://mannystatus.github.io/ats-scan/" />
-<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="canonical" href="https://resumechkr.com/" />
 <link rel="icon" href="favicon.ico" sizes="any" />
+<link rel="icon" href="favicon-dark.png" type="image/png" />
+<link rel="icon" href="favicon-light.png" type="image/png" media="(prefers-color-scheme: light)" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 <link rel="manifest" href="site.webmanifest" />
 
 <meta property="og:type" content="website" />
-<meta property="og:url" content="https://mannystatus.github.io/ats-scan/" />
-<meta property="og:site_name" content="ATS Scan" />
-<meta property="og:title" content="ATS Scan — resume × job posting compatibility" />
+<meta property="og:url" content="https://resumechkr.com/" />
+<meta property="og:site_name" content="ResumeChkr" />
+<meta property="og:title" content="ResumeChkr — resume × job posting compatibility" />
 <meta property="og:description" content="Check your resume against any job posting for ATS compatibility — free, runs 100% in your browser, no signup, no data uploaded." />
-<meta property="og:image" content="https://mannystatus.github.io/ats-scan/og-image.png" />
+<meta property="og:image" content="https://resumechkr.com/og-image.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="ATS Scan — resume × job posting compatibility" />
+<meta name="twitter:title" content="ResumeChkr — resume × job posting compatibility" />
 <meta name="twitter:description" content="Check your resume against any job posting for ATS compatibility — free, runs 100% in your browser, no signup, no data uploaded." />
-<meta name="twitter:image" content="https://mannystatus.github.io/ats-scan/og-image.png" />
+<meta name="twitter:image" content="https://resumechkr.com/og-image.png" />
 <style>
   html, body { margin: 0; padding: 0; background: #0B0F14; }
 </style>
@@ -69,13 +73,8 @@
     flex-wrap: wrap; gap: 8px;
   }
   #ats-root .brand { display: flex; align-items: center; gap: 14px; }
-  #ats-root .brand-mark { height: 34px; width: auto; border-radius: 6px; display: block; flex: 0 0 auto; }
-  #ats-root .brand-div { width: 1px; height: 22px; background: var(--line); flex: 0 0 auto; }
-  #ats-root h1 {
-    font-family: 'Space Grotesk', 'Inter', sans-serif;
-    font-size: 26px; font-weight: 600; margin: 0; letter-spacing: -0.01em;
-  }
-  #ats-root h1 span { color: var(--accent); }
+  #ats-root .brand-mark { height: 60px; width: auto; display: block; flex: 0 0 auto; }
+  #ats-root h1 { margin: 0; line-height: 0; }
   #ats-root .tag { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-dim); letter-spacing: 0.06em; text-transform: uppercase; }
   #ats-root .masthead-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
   #ats-root .patreon-link {
@@ -283,11 +282,114 @@
   #ats-root .site-footer p {
     font-size: 12px; line-height: 1.6; color: var(--ink-dim); margin: 0; max-width: 760px;
   }
+  #ats-root .footer-legal-links { display: flex; gap: 14px; flex-wrap: wrap; }
+  #ats-root .footer-legal-links a {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--ink-dim);
+    text-decoration: none; border-bottom: 1px solid var(--line);
+  }
+  #ats-root .footer-legal-links a:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* --- Platform parsing simulation --- */
+  #ats-root .platform-toggle { display: flex; gap: 6px; margin-bottom: 16px; }
+  #ats-root .platform-btn {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; padding: 7px 14px;
+    border-radius: 7px; border: 1px solid var(--line); background: var(--panel-2);
+    color: var(--ink-dim); cursor: pointer; transition: color 0.12s ease, border-color 0.12s ease;
+  }
+  #ats-root .platform-btn:hover { color: var(--ink); }
+  #ats-root .platform-btn.active { color: var(--accent); border-color: var(--accent); background: rgba(94,224,200,0.08); }
+  #ats-root .parse-sim { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  @media (max-width: 720px) { #ats-root .parse-sim { grid-template-columns: 1fr; } }
+  #ats-root .parse-field { border-bottom: 1px solid var(--line); padding: 8px 0; }
+  #ats-root .parse-field:last-child { border-bottom: none; }
+  #ats-root .parse-field .fkey {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--ink-dim);
+    text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 3px;
+  }
+  #ats-root .parse-field .fval { font-size: 13px; line-height: 1.5; }
+  #ats-root .parse-field .fval.broken { color: var(--fail); }
+  #ats-root .parse-field .fval.shaky { color: var(--warn); }
+  #ats-root .parse-field .fval.empty { color: var(--ink-dim); font-style: italic; }
+  #ats-root .platform-note { font-size: 12.5px; color: var(--ink-dim); line-height: 1.6; margin: 0 0 16px; }
+
+  /* --- Tailoring version history (session-only, not persisted) --- */
+  #ats-root .version-list { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 4px; }
+  #ats-root .version-item {
+    display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); flex-wrap: wrap;
+  }
+  #ats-root .version-score { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; width: 36px; text-align: center; flex: 0 0 auto; }
+  #ats-root .version-main { flex: 1 1 220px; min-width: 0; }
+  #ats-root .version-title { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+  #ats-root .version-meta { font-size: 11.5px; color: var(--ink-dim); font-family: 'IBM Plex Mono', monospace; }
+  #ats-root .session-note { font-size: 11.5px; color: var(--ink-dim); font-style: italic; margin: 8px 0 0; }
+
+  /* --- Outcome tracking --- */
+  #ats-root .outcome-select {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; border-radius: 6px;
+    padding: 5px 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink-dim); cursor: pointer;
+  }
+  #ats-root .outcome-select.set-interview, #ats-root .outcome-select.set-offer { color: var(--signal); border-color: rgba(61,220,132,0.35); }
+  #ats-root .outcome-select.set-rejected { color: var(--fail); border-color: rgba(255,84,112,0.35); }
+  #ats-root .outcome-select.set-no_response { color: var(--warn); border-color: rgba(245,166,35,0.35); }
+
+  /* --- Batch / bulk mode --- */
+  #ats-root .batch-card { margin: 0 0 30px; }
+  #ats-root .batch-job {
+    border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 10px; background: var(--panel-2);
+  }
+  #ats-root .batch-job-head { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  #ats-root .batch-job-head input {
+    flex: 1; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; color: var(--ink);
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 7px 9px; outline: none;
+  }
+  #ats-root .batch-job textarea { min-height: 90px; }
+  #ats-root .batch-remove { background: none; border: none; color: var(--ink-dim); cursor: pointer; font-size: 15px; padding: 4px 6px; flex: 0 0 auto; }
+  #ats-root .batch-remove:hover { color: var(--fail); }
+  #ats-root .batch-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  #ats-root .rank-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  #ats-root .rank-table th { text-align: left; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  #ats-root .rank-table td { padding: 8px; border-bottom: 1px solid var(--line); font-size: 13px; vertical-align: top; }
+  #ats-root .rank-table tr:last-child td { border-bottom: none; }
+  #ats-root .rank-score { font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+
+  /* --- Cookie consent banner --- */
+  #ats-root .cookie-banner {
+    position: fixed; inset: 0; z-index: 50;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 16px; pointer-events: none;
+  }
+  #ats-root .cookie-box {
+    pointer-events: auto; max-width: 560px; width: 100%;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+    padding: 18px 20px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+  }
+  #ats-root .cookie-text { flex: 1 1 320px; }
+  #ats-root .cookie-title { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: var(--ink); }
+  #ats-root .cookie-box p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-dim); }
+  #ats-root .cookie-box a { color: var(--accent); text-decoration: underline; }
+  #ats-root .cookie-actions { display: flex; flex-shrink: 0; gap: 10px; }
+  #ats-root .cookie-accept, #ats-root .cookie-reject {
+    flex-shrink: 0; padding: 10px 24px; border-radius: 8px;
+    font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  #ats-root .cookie-accept { border: none; background: var(--accent); color: #06141A; }
+  #ats-root .cookie-accept:hover { filter: brightness(1.1); }
+  #ats-root .cookie-reject { border: 1px solid var(--line); background: transparent; color: var(--ink); }
+  #ats-root .cookie-reject:hover { background: var(--panel-2); }
+  #ats-root .cookie-settings-btn {
+    position: fixed; left: 12px; bottom: 12px; z-index: 49;
+    background: var(--panel); border: 1px solid var(--line); color: var(--ink-dim);
+    font-size: 11px; padding: 6px 10px; border-radius: 999px; cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace; transition: color 0.12s ease, border-color 0.12s ease;
+  }
+  #ats-root .cookie-settings-btn:hover { color: var(--accent); border-color: var(--accent); }
 </style>
 
 <script type="text/babel" data-presets="react">
-const { useState, useRef } = React;
-const LAST_UPDATED = 'July 24, 2026';
+const { useState, useRef, useEffect } = React;
+const LAST_UPDATED = 'July 30, 2026';
 
 function Gauge({ score, label }) {
   const r = 60, c = 2 * Math.PI * r;
@@ -503,6 +605,80 @@ function detectKnockoutRequirements(jd) {
   return found;
 }
 
+// --- ATS parsing simulation (Workday / Greenhouse) ----------------------
+// Real ATS parsers (Sovren-based for Greenhouse, a proprietary parser for
+// Workday) extract structured fields from a resume — name, contact info,
+// work history entries, skills — for a recruiter's structured view rather
+// than reading raw text. We can't call either vendor's real parser from a
+// static page, so this simulates the same field-extraction pass with the
+// documented failure modes each platform is known for, and shows the user
+// what a recruiter's structured view would likely look like, not just a
+// pass/fail checklist. Entirely local heuristics — no network call.
+
+const PLATFORM_INFO = {
+  greenhouse: {
+    name: 'Greenhouse',
+    blurb: 'Greenhouse uses a resume-parsing service (Sovren) to extract structured fields for recruiters. It tolerates single-column layouts well but commonly mis-splits multi-column resumes, text boxes, and headers/footers into the wrong field or drops them entirely.',
+  },
+  workday: {
+    name: 'Workday',
+    blurb: "Workday's parser is notoriously strict — it's the platform most often blamed for silently dropping or garbling resume content. It struggles most with tables, nested/multi-level bullets, text inside headers or footers, and non-standard date formats.",
+  },
+};
+
+function simulateAtsParse(resume, platform) {
+  const lines = resume.split('\n').map(l => l.trim()).filter(Boolean);
+  const emailMatch = resume.match(/[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}/);
+  const phoneMatch = resume.match(/(\+?\d[\d\s().-]{7,}\d)/);
+  const nameGuess = lines[0] && lines[0].length < 60 && !/@|\d{3}/.test(lines[0]) ? lines[0] : null;
+  const hasTabsOrCols = /\t/.test(resume) || /\s{4,}\S/.test(resume);
+  const sectionRe = /(experience|work history|employment|education|skills|summary)/i;
+  const sectionLines = lines.filter(l => l.length < 40 && sectionRe.test(l));
+  const bulletCount = (resume.match(/^[\s]*[•\-\*]/gm) || []).length;
+  const dateRe = /\b(19|20)\d{2}\b/g;
+  const dates = resume.match(dateRe) || [];
+  const nonStdDate = /\b\d{1,2}[\/.]\d{1,2}[\/.]\d{2,4}\b/.test(resume);
+  const hasHyperlink = /(linkedin\.com|http:\/\/|https:\/\/)/i.test(resume);
+  const nestedBullets = /^\s{2,}[•\-\*]/m.test(resume);
+
+  const fields = [];
+  fields.push({ key: 'Full name', val: nameGuess || 'Not confidently isolated', cls: nameGuess ? 'pass' : 'shaky' });
+  fields.push({ key: 'Email', val: emailMatch ? emailMatch[0] : 'Not found', cls: emailMatch ? 'pass' : 'broken' });
+  fields.push({ key: 'Phone', val: phoneMatch ? phoneMatch[0] : 'Not found', cls: phoneMatch ? 'pass' : 'shaky' });
+  fields.push({ key: 'Section headers detected', val: sectionLines.length > 0 ? sectionLines.slice(0, 6).join(' · ') : 'None matched standard headers', cls: sectionLines.length >= 2 ? 'pass' : 'shaky' });
+  fields.push({ key: 'Work history entries (est.)', val: dates.length >= 2 ? Math.max(1, Math.floor(dates.length / 2)) + ' date-anchored entries found' : 'Too few dates to isolate entries', cls: dates.length >= 2 ? 'pass' : 'shaky' });
+  fields.push({ key: 'Bulleted achievements', val: bulletCount + ' bullet lines', cls: bulletCount >= 4 ? 'pass' : 'shaky' });
+
+  // Platform-specific risk flags, weighted toward each platform's documented weak spots.
+  const risks = [];
+  if (hasTabsOrCols) {
+    risks.push(platform === 'workday'
+      ? { label: 'Column/table layout', detail: 'Tabs or wide gaps detected — Workday frequently reads multi-column resumes top-to-bottom across columns, interleaving unrelated lines into one garbled field.', status: 'fail' }
+      : { label: 'Column/table layout', detail: 'Tabs or wide gaps detected — Greenhouse\'s parser (Sovren) usually keeps columns separate but can merge a narrow sidebar (dates, skills) into the wrong section.', status: 'warn' });
+  }
+  if (nestedBullets) {
+    risks.push(platform === 'workday'
+      ? { label: 'Nested bullet levels', detail: 'Multi-level bullets detected — Workday commonly flattens nested bullets into one run-on line, losing the sub-point structure.', status: 'warn' }
+      : { label: 'Nested bullet levels', detail: 'Multi-level bullets detected — generally preserved, but sub-bullets sometimes lose indentation once rendered in the recruiter view.', status: 'pass' });
+  }
+  if (hasHyperlink) {
+    risks.push(platform === 'workday'
+      ? { label: 'Embedded hyperlinks', detail: 'Link-style text found — Workday sometimes renders the underlying URL instead of the display text, or strips it, depending on the source document format.', status: 'warn' }
+      : { label: 'Embedded hyperlinks', detail: 'Link-style text found — Greenhouse generally preserves link text cleanly in its parsed view.', status: 'pass' });
+  }
+  if (nonStdDate) {
+    risks.push({ label: 'Non-standard date format', detail: 'Numeric dates like 03/2021 detected — both platforms parse "Month YYYY" (e.g. "March 2021") far more reliably for sorting work history chronologically.', status: 'warn' });
+  }
+  if (sectionLines.length < 2) {
+    risks.push({ label: 'Unrecognized section headers', detail: 'Few or no standard section headers found — both platforms rely on header text to bucket content, so custom headers like "My Journey" instead of "Experience" often get dumped into the wrong field or ignored.', status: 'fail' });
+  }
+  if (risks.length === 0) {
+    risks.push({ label: 'No major platform-specific risks detected', detail: 'This resume\'s structure looks straightforward enough that both parsers should extract it without obvious field-splitting issues.', status: 'pass' });
+  }
+
+  return { fields, risks };
+}
+
 // --- Bring-your-own-AI bridge -----------------------------------------
 // We never call any AI service ourselves. Instead we build a plain-text
 // prompt the user copies into whatever AI they already have (ChatGPT,
@@ -520,6 +696,21 @@ Return ONLY raw JSON (no markdown fences, no preamble, no commentary before or a
 "summary_rewrite": "<a tightened 2-3 sentence professional summary tailored to this posting, based on the resume's real background>",
 "bullet_rewrites": [{"before": "<a real bullet-ish line from the resume, verbatim or close>", "after": "<rewritten version that adds a missing keyword naturally and is more quantified>", "why": "<one short sentence>"} - up to 4 items]}
 Keep every string concise. Do not invent employers, titles, or metrics not implied by the resume.
+
+JOB POSTING:
+${jd.slice(0, 6000)}
+
+RESUME:
+${resume.slice(0, 6000)}`;
+}
+
+function buildCoverLetterPrompt(jd, resume) {
+  return `You are a job-application writing assistant. Using the RESUME and JOB POSTING below, write a tailored cover letter and a LinkedIn headline.
+Return ONLY raw JSON (no markdown fences, no preamble, no commentary before or after) matching exactly this shape:
+{"cover_letter": "<a 3-4 paragraph cover letter, professional tone, tailored to this specific posting, grounded only in real experience from the resume — do not invent employers, titles, or metrics>",
+"linkedin_headline": "<one LinkedIn headline, under 220 characters, that positions this candidate for roles like this one>",
+"headline_alt": "<a second, differently-angled LinkedIn headline option, also under 220 characters>"}
+Keep the cover letter concise — no more than about 300 words.
 
 JOB POSTING:
 ${jd.slice(0, 6000)}
@@ -572,6 +763,26 @@ function jdTitleFrom(jd) {
   return line.length > 90 ? line.slice(0, 90) + '…' : line;
 }
 
+// --- Cookie consent -------------------------------------------------------
+// Google Consent Mode v2: gtag.js loads with analytics_storage defaulted to
+// 'denied' (see <head>). Nothing is actually tracked until the visitor hits
+// Accept below, which flips that to 'granted'. The choice is remembered in
+// localStorage so the banner only shows once, and "Cookie Settings" lets
+// them reopen it and change their mind at any time.
+
+const CONSENT_KEY = 'resumechkr-cookie-consent';
+
+function loadConsent() {
+  try { return localStorage.getItem(CONSENT_KEY); } catch (e) { return null; }
+}
+
+function applyConsent(choice) {
+  try { localStorage.setItem(CONSENT_KEY, choice); } catch (e) { /* storage unavailable — skip silently */ }
+  if (window.gtag) {
+    window.gtag('consent', 'update', { analytics_storage: choice === 'accepted' ? 'granted' : 'denied' });
+  }
+}
+
 function App() {
   const [jd, setJd] = useState('');
   const [resume, setResume] = useState('');
@@ -595,6 +806,38 @@ function App() {
   const [aiResponseText, setAiResponseText] = useState('');
   const [aiResult, setAiResult] = useState(null);
   const [aiError, setAiError] = useState('');
+
+  const [atsPlatform, setAtsPlatform] = useState('greenhouse');
+
+  // Tailoring version history — session-only, kept in memory, never
+  // persisted to localStorage or sent anywhere. Clearing/reloading the
+  // page loses it; that's intentional for now.
+  const [versions, setVersions] = useState([]);
+  const [versionSaved, setVersionSaved] = useState(false);
+
+  const [clOpen, setClOpen] = useState(false);
+  const [clCopied, setClCopied] = useState(false);
+  const [clResponseText, setClResponseText] = useState('');
+  const [clResult, setClResult] = useState(null);
+  const [clError, setClError] = useState('');
+
+  // Batch mode — also session-only for now.
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchJobs, setBatchJobs] = useState([{ id: 'b0', title: '', text: '' }]);
+  const [batchResults, setBatchResults] = useState(null);
+
+  const [cookieChoice, setCookieChoice] = useState(() => loadConsent());
+  const [cookieBannerOpen, setCookieBannerOpen] = useState(() => !loadConsent());
+
+  useEffect(() => {
+    if (cookieChoice) applyConsent(cookieChoice);
+  }, []);
+
+  function chooseCookies(choice) {
+    setCookieChoice(choice);
+    applyConsent(choice);
+    setCookieBannerOpen(false);
+  }
 
   function stripHtml(html) {
     const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -723,22 +966,102 @@ function App() {
     setAiError('');
   }
 
+  function setOutcome(id, outcome) {
+    setHistory(h => {
+      const next = h.map(e => e.id === id ? { ...e, outcome } : e);
+      saveHistory(next);
+      return next;
+    });
+  }
+
+  function saveVersion() {
+    if (!overlap) return;
+    const entry = {
+      id: Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+      title: jdTitleFrom(jd),
+      score: overlap.score,
+      savedAt: Date.now(),
+      resumeSnapshot: resume,
+    };
+    setVersions(v => [entry, ...v].slice(0, 50));
+    setVersionSaved(true);
+    setTimeout(() => setVersionSaved(false), 2200);
+  }
+
+  function loadVersion(id) {
+    const v = versions.find(x => x.id === id);
+    if (!v) return;
+    setResume(v.resumeSnapshot);
+    focusResume();
+  }
+
+  function deleteVersion(id) {
+    setVersions(v => v.filter(x => x.id !== id));
+  }
+
+  async function copyClPrompt() {
+    try {
+      await navigator.clipboard.writeText(buildCoverLetterPrompt(jd, resume));
+      setClCopied(true);
+      setTimeout(() => setClCopied(false), 2500);
+    } catch (e) {
+      setClError("Couldn't copy automatically — select the prompt text and copy it manually.");
+    }
+  }
+
+  function parsePastedClResponse() {
+    setClError('');
+    try {
+      const parsed = parseAiResponse(clResponseText);
+      if (!parsed.cover_letter && !parsed.linkedin_headline) throw new Error('shape');
+      setClResult(parsed);
+    } catch (e) {
+      setClResult(null);
+      setClError("Couldn't read that as the expected JSON. Make sure you pasted the AI's full reply with no extra text around it, then try again.");
+    }
+  }
+
+  function resetClSection() {
+    setClResponseText('');
+    setClResult(null);
+    setClError('');
+  }
+
+  function addBatchJob() {
+    setBatchJobs(j => [...j, { id: 'b' + Date.now(), title: '', text: '' }]);
+  }
+  function updateBatchJob(id, field, value) {
+    setBatchJobs(j => j.map(b => b.id === id ? { ...b, [field]: value } : b));
+  }
+  function removeBatchJob(id) {
+    setBatchJobs(j => j.filter(b => b.id !== id));
+  }
+  function runBatchRank() {
+    const jobs = batchJobs.filter(b => b.text.trim().length > 20);
+    if (!resume.trim() || jobs.length === 0) return;
+    const ranked = jobs
+      .map(b => {
+        const kw = keywordOverlap(b.text, resume);
+        return { id: b.id, title: b.title.trim() || jdTitleFrom(b.text), score: kw ? kw.score : 0, missingCount: kw ? kw.missing.length : 0 };
+      })
+      .sort((a, b2) => b2.score - a.score);
+    setBatchResults(ranked);
+  }
+
   const canScan = jd.trim().length > 20 && resume.trim().length > 20;
 
   return (
     <div className="wrap">
       <div className="masthead">
         <div className="brand">
-          <img className="brand-mark" src="logo-lockup.svg" alt="mcx.pro" />
-          <div className="brand-div"></div>
-          <h1>ATS<span>·</span>Scan</h1>
+          <h1><img className="brand-mark" src="logo-reversed.png" alt="ResumeChkr" /></h1>
         </div>
         <div className="masthead-right">
           <div className="tag">resume × job posting compatibility</div>
           <a className="patreon-link" href="https://patreon.com/MCXLABS?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink" target="_blank" rel="noopener noreferrer">♥ Support on Patreon</a>
         </div>
       </div>
-      <div className="privacy-note"><span className="dot"></span>Runs entirely in your browser — your resume and job posting stay on your device and are never sent to ATS Scan or anyone else.</div>
+      <div className="privacy-note"><span className="dot"></span>Runs entirely in your browser — your resume and job posting stay on your device and are never sent to ResumeChkr or anyone else.</div>
 
       <div className="card history-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
@@ -751,7 +1074,7 @@ function App() {
         {historyOpen && (
           <div style={{ marginTop: 16 }}>
             <p className="history-note">
-              Every scan is saved here automatically so you can track which postings you've checked and mark the ones you've applied to. Only the posting's title line, the date, and your score are saved — never the full resume or posting text — and it's all stored in this browser only (localStorage), never sent to ATS Scan.
+              Every scan is saved here automatically so you can track which postings you've checked and mark the ones you've applied to. Only the posting's title line, the date, and your score are saved — never the full resume or posting text — and it's all stored in this browser only (localStorage), never sent to ResumeChkr.
             </p>
 
             {history.length === 0 && (
@@ -775,6 +1098,19 @@ function App() {
                         <button className={"applied-btn" + (h.applied ? ' is-applied' : '')} onClick={() => toggleApplied(h.id)}>
                           {h.applied ? '✓ Applied' : 'Mark applied'}
                         </button>
+                        {h.applied && (
+                          <select
+                            className={"outcome-select" + (h.outcome ? ' set-' + h.outcome : '')}
+                            value={h.outcome || ''}
+                            onChange={e => setOutcome(h.id, e.target.value || null)}
+                          >
+                            <option value="">Outcome…</option>
+                            <option value="no_response">No response</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="interview">Interview</option>
+                            <option value="offer">Offer</option>
+                          </select>
+                        )}
                         <button className="history-delete" onClick={() => deleteHistoryEntry(h.id)} title="Remove from history" aria-label="Remove from history">×</button>
                       </div>
                     </div>
@@ -850,6 +1186,67 @@ function App() {
         Paste plain text (not a PDF) for the most accurate check. This runs entirely on your device and works for everyone, free — but it only counts word matches, so results are more limited than an AI-generated score. For a deeper analysis, see "Use your own AI" below.
       </p>
 
+      <div className="card batch-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <h3 style={{ marginBottom: 0 }}>Batch mode: rank against multiple postings</h3>
+          <button className={"collapse-toggle batch-toggle" + (batchOpen ? ' open' : '')} onClick={() => setBatchOpen(!batchOpen)}>
+            <span className="chev">▸</span> {batchOpen ? 'Hide' : 'Show'}
+          </button>
+        </div>
+
+        {batchOpen && (
+          <div style={{ marginTop: 16 }}>
+            <p className="ai-note">
+              Paste your resume in the box above, then add up to 20 postings below to rank by keyword-overlap fit — useful when you've got a shortlist of target companies and want to prioritize which posting to tailor for first. Same local, no-AI scoring as the single scan above; nothing leaves your browser. This list is session-only right now and clears on reload.
+            </p>
+            {batchJobs.map((b, i) => (
+              <div key={b.id} className="batch-job">
+                <div className="batch-job-head">
+                  <input
+                    type="text"
+                    placeholder={"Posting " + (i + 1) + " label (e.g. company / role) — optional"}
+                    value={b.title}
+                    onChange={e => updateBatchJob(b.id, 'title', e.target.value)}
+                  />
+                  {batchJobs.length > 1 && (
+                    <button className="batch-remove" onClick={() => removeBatchJob(b.id)} title="Remove posting" aria-label="Remove posting">×</button>
+                  )}
+                </div>
+                <textarea
+                  placeholder="Paste this job posting's text here…"
+                  value={b.text}
+                  onChange={e => updateBatchJob(b.id, 'text', e.target.value)}
+                />
+              </div>
+            ))}
+            <div className="batch-actions">
+              {batchJobs.length < 20 && <button className="copy-btn" onClick={addBatchJob}>+ Add another posting</button>}
+              <button className="scan" disabled={!resume.trim() || batchJobs.filter(b => b.text.trim().length > 20).length === 0} onClick={runBatchRank}>
+                Rank all
+              </button>
+            </div>
+
+            {batchResults && (
+              <table className="rank-table" style={{ marginTop: 16 }}>
+                <thead>
+                  <tr><th>Rank</th><th>Posting</th><th>Score</th><th>Missing kw</th></tr>
+                </thead>
+                <tbody>
+                  {batchResults.map((r, i) => (
+                    <tr key={r.id}>
+                      <td>{i + 1}</td>
+                      <td>{r.title}</td>
+                      <td className="rank-score" style={{ color: r.score >= 75 ? 'var(--signal)' : r.score >= 50 ? 'var(--warn)' : 'var(--fail)' }}>{r.score}</td>
+                      <td>{r.missingCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="card ai-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <h3 style={{ marginBottom: 0 }}>Use your own AI (optional)</h3>
@@ -861,7 +1258,7 @@ function App() {
         {aiOpen && (
           <div className="ai-steps" style={{ marginTop: 16 }}>
             <p className="ai-note">
-              Local Mode (above) is free and works for everyone, but it's just a word-match count. For a deeper score — relevance, keyword gaps, a tailored summary, bullet rewrite suggestions — use any AI you already have (ChatGPT, Claude, Gemini, a local model, anything with a chat box). We never see the prompt or the reply; this only happens if you copy and paste it yourself, and it's sent to whichever AI service you choose, not to ATS Scan.
+              Local Mode (above) is free and works for everyone, but it's just a word-match count. For a deeper score — relevance, keyword gaps, a tailored summary, bullet rewrite suggestions — use any AI you already have (ChatGPT, Claude, Gemini, a local model, anything with a chat box). We never see the prompt or the reply; this only happens if you copy and paste it yourself, and it's sent to whichever AI service you choose, not to ResumeChkr.
             </p>
 
             <div>
@@ -895,7 +1292,7 @@ function App() {
                     <Gauge score={aiResult.score} label="AI MATCH SCORE" />
                     <div className="score-copy">
                       <h2>How this reads to an ATS, per your AI</h2>
-                      <p>Generated by the AI you pasted this into, not by ATS Scan — treat it as one more opinion, not a verdict.</p>
+                      <p>Generated by the AI you pasted this into, not by ResumeChkr — treat it as one more opinion, not a verdict.</p>
                     </div>
                   </div>
                 )}
@@ -945,6 +1342,73 @@ function App() {
         )}
       </div>
 
+      <div className="card ai-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <h3 style={{ marginBottom: 0 }}>Cover letter &amp; LinkedIn headline (optional, your own AI)</h3>
+          <button className={"collapse-toggle cl-toggle" + (clOpen ? ' open' : '')} onClick={() => setClOpen(!clOpen)}>
+            <span className="chev">▸</span> {clOpen ? 'Hide' : 'Show steps'}
+          </button>
+        </div>
+
+        {clOpen && (
+          <div className="ai-steps" style={{ marginTop: 16 }}>
+            <p className="ai-note">
+              Same bring-your-own-AI approach as above: this builds a prompt tailored to the posting and resume you've pasted in, asking for a cover letter draft and two LinkedIn headline options. We never see the prompt or the reply — it only goes to whichever AI you paste it into.
+            </p>
+            <div>
+              <span className="ai-step-label">Step 1 — copy this prompt</span>
+              <div>
+                <button className="copy-btn" disabled={!canScan} onClick={copyClPrompt}>Copy prompt</button>
+                {clCopied && <span className="copied-msg">Copied!</span>}
+              </div>
+              {!canScan && <div style={{ fontSize: 12, color: 'var(--ink-dim)', marginTop: 6 }}>Fill in both the job posting and resume above first.</div>}
+            </div>
+            <div>
+              <span className="ai-step-label">Step 2 — paste it into your AI</span>
+              <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: 0 }}>Paste into ChatGPT, Claude, Gemini, or whichever AI chat you use, and send it.</p>
+            </div>
+            <div>
+              <span className="ai-step-label">Step 3 — paste its reply back here</span>
+              <textarea placeholder="Paste the AI's full response here…" value={clResponseText} onChange={e => setClResponseText(e.target.value)} style={{ minHeight: 120 }} />
+              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                <button className="scan" disabled={!clResponseText.trim()} onClick={parsePastedClResponse}>Show results</button>
+                {(clResponseText || clResult) && <button className="copy-btn" onClick={resetClSection}>Clear</button>}
+              </div>
+              {clError && <div className="error">{clError}</div>}
+            </div>
+
+            {clResult && (
+              <div>
+                {clResult.cover_letter && (
+                  <div className="card" style={{ marginTop: 6 }}>
+                    <h3>Cover letter draft</h3>
+                    <div className="summary-box" style={{ whiteSpace: 'pre-wrap' }}>{clResult.cover_letter}</div>
+                    <button className="copy-btn" onClick={() => navigator.clipboard.writeText(clResult.cover_letter)}>Copy</button>
+                  </div>
+                )}
+                {(clResult.linkedin_headline || clResult.headline_alt) && (
+                  <div className="card" style={{ marginTop: 16 }}>
+                    <h3>LinkedIn headline options</h3>
+                    {clResult.linkedin_headline && (
+                      <div className="rewrite">
+                        <div className="after">{clResult.linkedin_headline}</div>
+                        <button className="copy-btn" onClick={() => navigator.clipboard.writeText(clResult.linkedin_headline)}>Copy</button>
+                      </div>
+                    )}
+                    {clResult.headline_alt && (
+                      <div className="rewrite">
+                        <div className="after">{clResult.headline_alt}</div>
+                        <button className="copy-btn" onClick={() => navigator.clipboard.writeText(clResult.headline_alt)}>Copy</button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {phase === 'scanning' && (
         <div className="scanning-box">
           <div className="laser"></div>
@@ -978,6 +1442,39 @@ function App() {
                 <div className="txt"><b>{c.label} — {c.detail}</b><span>{c.note}</span></div>
               </div>
             ))}
+          </div>
+
+          <div className="card" style={{ marginBottom: 16 }}>
+            <h3>ATS parsing simulation</h3>
+            <div className="platform-toggle">
+              {Object.keys(PLATFORM_INFO).map(p => (
+                <button key={p} className={"platform-btn" + (atsPlatform === p ? ' active' : '')} onClick={() => setAtsPlatform(p)}>
+                  {PLATFORM_INFO[p].name}
+                </button>
+              ))}
+            </div>
+            <p className="platform-note">{PLATFORM_INFO[atsPlatform].blurb} This is a simulation based on each platform's documented parsing behavior, not a call to either vendor's real parser — treat it as a best-effort estimate of how your resume's structure would come through, not a guarantee.</p>
+            {(() => {
+              const sim = simulateAtsParse(resume, atsPlatform);
+              return (
+                <React.Fragment>
+                  <div className="parse-sim">
+                    {sim.fields.map((f, i) => (
+                      <div key={i} className="parse-field">
+                        <span className="fkey">{f.key}</span>
+                        <span className={"fval " + (f.cls === 'fail' ? 'broken' : f.cls === 'warn' ? 'shaky' : f.cls === 'pass' ? '' : 'empty')}>{f.val}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {sim.risks.map((r, i) => (
+                    <div key={i} className={"check-item " + r.status}>
+                      <div className="dot"></div>
+                      <div className="txt"><b>{r.label}</b><span>{r.detail}</span></div>
+                    </div>
+                  ))}
+                </React.Fragment>
+              );
+            })()}
           </div>
 
           {knockouts.length > 0 && (
@@ -1060,28 +1557,64 @@ function App() {
               </p>
             </div>
           )}
+
+          <div className="card" style={{ marginBottom: 16 }}>
+            <h3>Tailored versions for this posting</h3>
+            <p className="improve-note">
+              Save a snapshot of your resume text as-is after you've tailored it for this posting, so you can come back and reload it instead of re-writing from scratch for the next similar role.
+            </p>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: versions.length ? 4 : 0 }}>
+              <button className="copy-btn" onClick={saveVersion}>Save this version</button>
+              {versionSaved && <span className="copied-msg">Saved!</span>}
+            </div>
+            {versions.length > 0 && (
+              <div className="version-list">
+                {versions.map(v => (
+                  <div key={v.id} className="version-item">
+                    <div className="version-score" style={{ color: v.score >= 75 ? 'var(--signal)' : v.score >= 50 ? 'var(--warn)' : 'var(--fail)' }}>{v.score}</div>
+                    <div className="version-main">
+                      <span className="version-title">{v.title}</span>
+                      <span className="version-meta">{new Date(v.savedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                    </div>
+                    <div className="history-actions">
+                      <button className="applied-btn" onClick={() => loadVersion(v.id)}>Reload into editor</button>
+                      <button className="history-delete" onClick={() => deleteVersion(v.id)} title="Delete version" aria-label="Delete version">×</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="session-note">Saved versions live only in this browser tab for this session — they're not written to disk and clear on reload.</p>
+          </div>
         </div>
       )}
 
       <footer className="site-footer">
-        <div>
-          <h4>Your data &amp; privacy</h4>
-          <p>All processing happens locally in your browser. The job posting and resume text you paste are never uploaded, transmitted, or stored on any ATS Scan server — we don't have one, and no analytics on this site ever sees the content of your resume or job posting. Closing or reloading this page clears the text in the boxes above. The one thing that does persist is your scan history — the posting's title line, the date, and your score, saved to this browser's local storage so you can track what you've checked and applied to; it stays on this device and is never transmitted anywhere, and you can clear it anytime from the "Your scan history" section. We don't set up user accounts. We do use Google Analytics to see aggregate traffic (pages visited, general location, device type) — it sets standard analytics cookies and works the same way it does on most websites, but it never receives the text you paste into the boxes above or your scan history. The one exception to the "nothing leaves your device" rule is the optional "Use your own AI" section: if you choose to copy the generated prompt into ChatGPT, Claude, Gemini, or another AI, that text goes to whichever service you pasted it into, subject to that service's own privacy policy — that's a step you take yourself, not something ATS Scan sends on your behalf.</p>
+        <div className="footer-legal-links">
+          <a href="legal.html#privacy">Privacy</a>
+          <a href="legal.html#terms">Terms</a>
+          <a href="legal.html#disclaimer">Disclaimer</a>
         </div>
-        <div>
-          <h4>Terms of use</h4>
-          <p>By using ATS Scan you agree to these terms. ATS Scan is a free tool meant to help you understand and improve how your resume reads to keyword-based applicant tracking systems. It does not guarantee an interview, a job offer, or any other hiring outcome. Hiring decisions are made solely by the employer — ATS Scan has no relationship with, and no control or influence over, the hiring process at any company. You're responsible for the accuracy of anything you submit to an employer, including any text you edit after using this tool; ATS Scan does not review, verify, or vouch for your resume's content. Use these results as one input among many when preparing your application, not as a promise of results. Don't use ATS Scan to process resumes or personal data belonging to someone else without their permission.</p>
-        </div>
-        <div>
-          <h4>Disclaimer &amp; limitation of liability</h4>
-          <p>ATS Scan is provided "as is," without warranties of any kind, express or implied, including fitness for a particular purpose or accuracy of results. The formatting checks and keyword-overlap score are heuristics, not a simulation of any specific employer's actual ATS software, and results from the optional AI bridge come from whichever third-party AI service you choose — ATS Scan does not generate, review, or endorse that output. To the fullest extent permitted by law, ATS Scan and its operator are not liable for any indirect, incidental, or consequential damages — including a missed job opportunity — arising from your use of this tool.</p>
-        </div>
-        <div>
-          <h4>Changes</h4>
-          <p>These terms may be updated from time to time as the tool changes; continued use after an update means you accept the revised terms.</p>
-        </div>
-        <p style={{ fontSize: 11, color: 'var(--ink-dim)', opacity: 0.7, marginTop: 4 }}>© {new Date().getFullYear()} ATS Scan. Last updated {LAST_UPDATED}.</p>
+        <p style={{ fontSize: 11, color: 'var(--ink-dim)', opacity: 0.7, marginTop: 4 }}>© {new Date().getFullYear()} ResumeChkr. Last updated {LAST_UPDATED}.</p>
       </footer>
+
+      {cookieBannerOpen && (
+        <div className="cookie-banner" role="dialog" aria-label="Cookie notice">
+          <div className="cookie-box">
+            <div className="cookie-text">
+              <p className="cookie-title">🍪 We use cookies</p>
+              <p>ResumeChkr never sees your resume or job posting text — that stays local. We do use Google Analytics for aggregate traffic stats, which sets a standard analytics cookie only if you accept. See <a href="legal.html#privacy">our privacy page</a> for details.</p>
+            </div>
+            <div className="cookie-actions">
+              <button type="button" className="cookie-reject" onClick={() => chooseCookies('rejected')}>Reject</button>
+              <button type="button" className="cookie-accept" onClick={() => chooseCookies('accepted')}>Accept</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {!cookieBannerOpen && (
+        <button type="button" className="cookie-settings-btn" onClick={() => setCookieBannerOpen(true)}>Cookie Settings</button>
+      )}
     </div>
   );
 }
