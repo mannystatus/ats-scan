@@ -73,7 +73,17 @@
     flex-wrap: wrap; gap: 8px;
   }
   #ats-root .brand { display: flex; align-items: center; gap: 14px; }
-  #ats-root .brand-mark { height: 60px; width: auto; display: block; flex: 0 0 auto; }
+  #ats-root .brand-mark {
+    height: 60px; width: auto; display: block; flex: 0 0 auto;
+    animation: brand-glow 2.4s ease-in-out infinite;
+  }
+  @keyframes brand-glow {
+    0%, 100% { filter: drop-shadow(0 0 2px rgba(94, 224, 200, 0.35)); }
+    50% { filter: drop-shadow(0 0 14px rgba(94, 224, 200, 0.85)); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #ats-root .brand-mark { animation: none; }
+  }
   #ats-root h1 { margin: 0; line-height: 0; }
   #ats-root .tag { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-dim); letter-spacing: 0.06em; text-transform: uppercase; }
   #ats-root .masthead-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
@@ -111,6 +121,28 @@
   }
   #ats-root textarea:focus { border-color: var(--accent); }
   #ats-root textarea::placeholder { color: #4A5763; }
+
+  #ats-root .pane-label-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  #ats-root .pane-label-row label { margin-bottom: 0; }
+  #ats-root .upload-btn {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--accent);
+    background: none; border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px;
+    cursor: pointer;
+  }
+  #ats-root .upload-btn:hover { border-color: var(--accent); }
+  #ats-root .upload-btn:disabled { color: var(--ink-dim); cursor: default; }
+  #ats-root .file-chip {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--ink-dim);
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 10px; margin-bottom: 8px;
+  }
+  #ats-root .file-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #ats-root .file-chip button {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-dim);
+    background: none; border: none; cursor: pointer; text-decoration: underline; flex: 0 0 auto;
+  }
+  #ats-root .file-chip button:hover { color: var(--accent); }
 
   #ats-root .scan-row { display: flex; align-items: center; gap: 14px; margin: 22px 0 30px; }
   #ats-root button.scan {
@@ -783,6 +815,69 @@ function applyConsent(choice) {
   }
 }
 
+// --- Resume file upload ---------------------------------------------------
+// Extraction happens entirely client-side (pdf.js / mammoth.js loaded from
+// a CDN on demand, only when a file is actually uploaded). The file itself
+// is never sent anywhere — same as pasted text.
+
+const scriptLoadCache = {};
+
+function loadScriptOnce(src) {
+  if (scriptLoadCache[src]) return scriptLoadCache[src];
+  scriptLoadCache[src] = new Promise((resolve, reject) => {
+    const el = document.createElement('script');
+    el.src = src;
+    el.onload = () => resolve();
+    el.onerror = () => reject(new Error('script load failed: ' + src));
+    document.head.appendChild(el);
+  });
+  return scriptLoadCache[src];
+}
+
+async function extractPdfText(file) {
+  await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+  const pdfjsLib = window.pdfjsLib;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const buf = await file.arrayBuffer();
+  const doc = await pdfjsLib.getDocument({ data: buf }).promise;
+  const pageTexts = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const content = await page.getTextContent();
+    let lastY = null;
+    let line = [];
+    const lines = [];
+    content.items.forEach(item => {
+      const y = item.transform[5];
+      if (lastY !== null && Math.abs(y - lastY) > 2) {
+        lines.push(line.join(' '));
+        line = [];
+      }
+      line.push(item.str);
+      lastY = y;
+    });
+    if (line.length) lines.push(line.join(' '));
+    pageTexts.push(lines.join('\n'));
+  }
+  return pageTexts.join('\n\n').replace(/[ \t]{2,}/g, ' ').trim();
+}
+
+async function extractDocxText(file) {
+  await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.11.0/mammoth.browser.min.js');
+  const buf = await file.arrayBuffer();
+  const result = await window.mammoth.extractRawText({ arrayBuffer: buf });
+  return result.value.trim();
+}
+
+async function extractResumeFileText(file) {
+  const name = file.name.toLowerCase();
+  if (name.endsWith('.pdf')) return extractPdfText(file);
+  if (name.endsWith('.docx')) return extractDocxText(file);
+  if (name.endsWith('.txt') || name.endsWith('.md')) return (await file.text()).trim();
+  if (name.endsWith('.doc')) throw new Error('legacy-doc');
+  throw new Error('unsupported');
+}
+
 function App() {
   const [jd, setJd] = useState('');
   const [resume, setResume] = useState('');
@@ -795,6 +890,10 @@ function App() {
   const [urlErr, setUrlErr] = useState('');
   const [missingCopied, setMissingCopied] = useState(false);
   const resumeRef = useRef(null);
+  const resumeFileRef = useRef(null);
+  const [resumeFileName, setResumeFileName] = useState('');
+  const [resumeFilePhase, setResumeFilePhase] = useState('idle'); // idle | reading | error
+  const [resumeFileErr, setResumeFileErr] = useState('');
   const scanLines = ['Reading job posting', 'Reading resume', 'Checking formatting', 'Extracting keywords', 'Comparing overlap'];
 
   const [history, setHistory] = useState(() => loadHistory());
@@ -866,6 +965,38 @@ function App() {
       setUrlPhase('error');
       setUrlErr("Couldn't pull that page automatically — most job sites block cross-origin requests from the browser. Paste the posting text into the box below instead.");
     }
+  }
+
+  async function handleResumeFile(file) {
+    if (!file) return;
+    setResumeFilePhase('reading');
+    setResumeFileErr('');
+    try {
+      const text = await extractResumeFileText(file);
+      if (!text) throw new Error('empty');
+      setResume(text);
+      setResumeFileName(file.name);
+      setResumeFilePhase('idle');
+    } catch (e) {
+      setResumeFileName('');
+      setResumeFilePhase('error');
+      if (e.message === 'legacy-doc') {
+        setResumeFileErr("Old .doc format isn't supported in-browser — save it as .docx or PDF, or paste the text below.");
+      } else if (e.message === 'empty') {
+        setResumeFileErr("Couldn't find any text in that file — it may be a scanned image. Paste the text below instead.");
+      } else if (e.message === 'unsupported') {
+        setResumeFileErr('Unsupported file type — upload a .pdf, .docx, or .txt, or paste the text below.');
+      } else {
+        setResumeFileErr("Couldn't read that file — paste the text below instead.");
+      }
+    }
+  }
+
+  function clearResumeFile() {
+    setResumeFileName('');
+    setResumeFilePhase('idle');
+    setResumeFileErr('');
+    if (resumeFileRef.current) resumeFileRef.current.value = '';
   }
 
   function runScan() {
@@ -1171,8 +1302,37 @@ function App() {
           <textarea placeholder="Paste the full job posting text here…" value={jd} onChange={e => setJd(e.target.value)} />
         </div>
         <div className="pane">
-          <label>Your Resume</label>
-          <textarea ref={resumeRef} placeholder="Paste your resume text here…" value={resume} onChange={e => setResume(e.target.value)} />
+          <div className="pane-label-row">
+            <label>Your Resume</label>
+            <input
+              ref={resumeFileRef}
+              type="file"
+              accept=".pdf,.docx,.txt,.md"
+              style={{ display: 'none' }}
+              onChange={e => handleResumeFile(e.target.files[0])}
+            />
+            <button
+              type="button"
+              className="upload-btn"
+              disabled={resumeFilePhase === 'reading'}
+              onClick={() => resumeFileRef.current && resumeFileRef.current.click()}
+            >
+              {resumeFilePhase === 'reading' ? 'Reading…' : 'Upload file'}
+            </button>
+          </div>
+          {resumeFileName && (
+            <div className="file-chip">
+              <span>{resumeFileName}</span>
+              <button type="button" onClick={clearResumeFile}>Clear</button>
+            </div>
+          )}
+          {resumeFilePhase === 'error' && <div className="error" style={{ padding: '0 0 8px' }}>{resumeFileErr}</div>}
+          <textarea
+            ref={resumeRef}
+            placeholder="Paste your resume text here, or upload a .pdf / .docx / .txt file above…"
+            value={resume}
+            onChange={e => { setResume(e.target.value); if (resumeFileName) setResumeFileName(''); }}
+          />
         </div>
       </div>
 
@@ -1183,7 +1343,7 @@ function App() {
         <span className="mode-badge">Local mode · no AI account needed</span>
       </div>
       <p className="scan-hint" style={{ margin: '-14px 0 30px' }}>
-        Paste plain text (not a PDF) for the most accurate check. This runs entirely on your device and works for everyone, free — but it only counts word matches, so results are more limited than an AI-generated score. For a deeper analysis, see "Use your own AI" below.
+        Upload a .pdf, .docx, or .txt file, or paste text directly — text extraction happens entirely on your device, the file itself is never uploaded anywhere. This mode only counts word matches, so results are more limited than an AI-generated score. For a deeper analysis, see "Use your own AI" below.
       </p>
 
       <div className="card batch-card">
