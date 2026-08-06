@@ -15,13 +15,22 @@
 </script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<script>
+  // Applies a saved dark-mode choice before first paint so there's no flash
+  // of the (default) light theme. Site defaults to light when nothing is saved.
+  try {
+    if (localStorage.getItem('resumechkr-theme') === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  } catch (e) {}
+</script>
 <title>ResumeChkr — Free ATS Resume Checker for Greenhouse, Workable &amp; More</title>
 <meta name="description" content="Free ATS resume checker — scan your resume against any job application for Greenhouse, Workable, and other top ATS platforms. 100% private, runs in your browser, no signup." />
 <meta name="keywords" content="resume checker, ats resume checker, ats scanner, applicant tracking system, top ats systems, greenhouse ats, workable ats, resume score, job application, resume optimization, free resume checker, ats compatibility check" />
 <meta name="robots" content="index, follow" />
 <meta name="googlebot" content="index, follow" />
 <meta name="bingbot" content="index, follow" />
-<meta name="theme-color" content="#0B0F14" />
+<meta name="theme-color" content="#F7F9FB" />
 
 <link rel="canonical" href="https://resumechkr.com/" />
 <link rel="icon" href="favicon.ico" sizes="any" />
@@ -63,7 +72,46 @@
 </script>
 
 <style>
-  html, body { margin: 0; padding: 0; background: #0B0F14; }
+  /* Light theme is the default; dark is opt-in via the toggle in the masthead. */
+  :root {
+    --bg: #F7F9FB;
+    --panel: #FFFFFF;
+    --panel-2: #F0F3F6;
+    --line: #DCE3EA;
+    --ink: #12181F;
+    --ink-dim: #5B6672;
+    --signal: #0D7A3E;
+    --warn: #A5650A;
+    --fail: #C22743;
+    --accent: #0A7D6E;
+    --accent-rgb: 10, 125, 110;
+    --signal-rgb: 13, 122, 62;
+    --fail-rgb: 194, 39, 67;
+    --warn-rgb: 165, 101, 10;
+    --shadow: rgba(15, 23, 32, 0.12);
+    --placeholder: #94A0AC;
+    --btn-ink: #FFFFFF;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0B0F14;
+    --panel: #121821;
+    --panel-2: #17202B;
+    --line: #232E3A;
+    --ink: #E8ECEF;
+    --ink-dim: #8B98A5;
+    --signal: #3DDC84;
+    --warn: #F5A623;
+    --fail: #FF5470;
+    --accent: #5EE0C8;
+    --accent-rgb: 94, 224, 200;
+    --signal-rgb: 61, 220, 132;
+    --fail-rgb: 255, 84, 112;
+    --warn-rgb: 245, 166, 35;
+    --shadow: rgba(0, 0, 0, 0.35);
+    --placeholder: #4A5763;
+    --btn-ink: #06141A;
+  }
+  html, body { margin: 0; padding: 0; background: var(--bg); }
   .sr-only {
     position: absolute;
     width: 1px;
@@ -81,16 +129,6 @@
 <div id="ats-root"></div>
 <style>
   #ats-root {
-    --bg: #0B0F14;
-    --panel: #121821;
-    --panel-2: #17202B;
-    --line: #232E3A;
-    --ink: #E8ECEF;
-    --ink-dim: #8B98A5;
-    --signal: #3DDC84;
-    --warn: #F5A623;
-    --fail: #FF5470;
-    --accent: #5EE0C8;
     font-family: 'Inter', -apple-system, sans-serif;
     background: var(--bg);
     color: var(--ink);
@@ -103,7 +141,8 @@
 
   #ats-root .masthead {
     display: flex; align-items: baseline; justify-content: space-between;
-    border-bottom: 1px solid var(--line); padding-bottom: 18px; margin-bottom: 12px;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 20px; margin-bottom: 24px;
     flex-wrap: wrap; gap: 8px;
   }
   #ats-root .brand { display: flex; align-items: center; gap: 14px; }
@@ -112,8 +151,8 @@
     animation: brand-glow 2.4s ease-in-out infinite;
   }
   @keyframes brand-glow {
-    0%, 100% { filter: drop-shadow(0 0 2px rgba(94, 224, 200, 0.35)); }
-    50% { filter: drop-shadow(0 0 14px rgba(94, 224, 200, 0.85)); }
+    0%, 100% { filter: drop-shadow(0 0 2px rgba(var(--accent-rgb), 0.35)); }
+    50% { filter: drop-shadow(0 0 14px rgba(var(--accent-rgb), 0.85)); }
   }
   @media (prefers-reduced-motion: reduce) {
     #ats-root .brand-mark { animation: none; }
@@ -127,6 +166,12 @@
     padding: 4px 9px; transition: color 0.12s ease, border-color 0.12s ease;
   }
   #ats-root .patreon-link:hover { color: var(--accent); border-color: var(--accent); }
+  #ats-root .theme-toggle {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-dim);
+    background: none; border: 1px solid var(--line); border-radius: 6px;
+    padding: 4px 9px; cursor: pointer; transition: color 0.12s ease, border-color 0.12s ease;
+  }
+  #ats-root .theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
 
   #ats-root .privacy-note {
     font-size: 12.5px; color: var(--ink-dim); margin-bottom: 24px;
@@ -154,7 +199,7 @@
     padding: 12px; outline: none;
   }
   #ats-root textarea:focus { border-color: var(--accent); }
-  #ats-root textarea::placeholder { color: #4A5763; }
+  #ats-root textarea::placeholder { color: var(--placeholder); }
 
   #ats-root .pane-label-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
   #ats-root .pane-label-row label { margin-bottom: 0; }
@@ -181,17 +226,17 @@
   #ats-root .scan-row { display: flex; align-items: center; gap: 14px; margin: 22px 0 30px; }
   #ats-root button.scan {
     font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 14px;
-    background: var(--accent); color: #06141A; border: none; border-radius: 8px;
+    background: var(--accent); color: var(--btn-ink); border: none; border-radius: 8px;
     padding: 13px 26px; cursor: pointer; letter-spacing: 0.02em;
     transition: transform 0.12s ease, box-shadow 0.12s ease;
   }
-  #ats-root button.scan:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(94,224,200,0.25); }
+  #ats-root button.scan:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(var(--accent-rgb), 0.25); }
   #ats-root button.scan:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
   #ats-root .scan-hint { font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; }
   #ats-root .mode-badge {
     font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--signal);
-    text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid rgba(61,220,132,0.35);
-    background: rgba(61,220,132,0.08); border-radius: 6px; padding: 5px 9px;
+    text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid rgba(var(--signal-rgb), 0.35);
+    background: rgba(var(--signal-rgb), 0.08); border-radius: 6px; padding: 5px 9px;
   }
 
   /* scanning animation */
@@ -202,7 +247,7 @@
   #ats-root .scanning-box .laser {
     position: absolute; left: 0; right: 0; height: 2px;
     background: linear-gradient(90deg, transparent, var(--signal), transparent);
-    box-shadow: 0 0 14px 2px rgba(61,220,132,0.7);
+    box-shadow: 0 0 14px 2px rgba(var(--signal-rgb), 0.7);
     animation: sweep 1.6s linear infinite;
   }
   @keyframes sweep { 0% { top: 0%; } 100% { top: 100%; } }
@@ -257,8 +302,8 @@
     font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; padding: 5px 10px;
     border-radius: 5px; border: 1px solid var(--line);
   }
-  #ats-root .kw.matched { color: var(--signal); border-color: rgba(61,220,132,0.35); background: rgba(61,220,132,0.08); }
-  #ats-root .kw.missing { color: var(--fail); border-color: rgba(255,84,112,0.35); background: rgba(255,84,112,0.08); }
+  #ats-root .kw.matched { color: var(--signal); border-color: rgba(var(--signal-rgb), 0.35); background: rgba(var(--signal-rgb), 0.08); }
+  #ats-root .kw.missing { color: var(--fail); border-color: rgba(var(--fail-rgb), 0.35); background: rgba(var(--fail-rgb), 0.08); }
 
   #ats-root .improve-card { margin-bottom: 16px; }
   #ats-root .improve-note { font-size: 13px; color: var(--ink-dim); line-height: 1.55; margin: 0 0 14px; }
@@ -300,7 +345,7 @@
     border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2);
     flex-wrap: wrap;
   }
-  #ats-root .history-item.applied { border-color: rgba(61,220,132,0.35); }
+  #ats-root .history-item.applied { border-color: rgba(var(--signal-rgb), 0.35); }
   #ats-root .history-score {
     font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px;
     flex: 0 0 auto; width: 42px; text-align: center;
@@ -316,7 +361,7 @@
     padding: 5px 10px; cursor: pointer; border: 1px solid var(--line); background: none; color: var(--ink-dim);
   }
   #ats-root .applied-btn:hover { border-color: var(--accent); color: var(--accent); }
-  #ats-root .applied-btn.is-applied { color: var(--signal); border-color: rgba(61,220,132,0.35); background: rgba(61,220,132,0.08); }
+  #ats-root .applied-btn.is-applied { color: var(--signal); border-color: rgba(var(--signal-rgb), 0.35); background: rgba(var(--signal-rgb), 0.08); }
   #ats-root .history-delete {
     background: none; border: none; color: var(--ink-dim); cursor: pointer; font-size: 15px; line-height: 1; padding: 4px 6px;
   }
@@ -336,6 +381,33 @@
     cursor: pointer; margin-top: 8px;
   }
   #ats-root .copy-btn:hover { border-color: var(--accent); }
+
+  /* --- Trust / highlights section --- */
+  #ats-root .trust-section { margin: 48px 0 40px; text-align: center; }
+  #ats-root .trust-heading h2 {
+    font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700;
+    line-height: 1.25; margin: 0 0 10px; color: var(--ink);
+  }
+  #ats-root .trust-brand { color: var(--accent); }
+  #ats-root .trust-heading p { font-size: 14px; color: var(--ink-dim); margin: 0 0 28px; }
+  #ats-root .trust-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+  @media (max-width: 720px) { #ats-root .trust-grid { grid-template-columns: 1fr; } }
+  #ats-root .trust-card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 26px 20px;
+  }
+  #ats-root .trust-icon { font-size: 22px; margin-bottom: 10px; }
+  #ats-root .trust-stat {
+    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 34px; color: var(--accent);
+    margin-bottom: 8px;
+  }
+  #ats-root .trust-label { font-size: 13px; color: var(--ink-dim); line-height: 1.5; }
+  #ats-root .trust-cta {
+    display: inline-block; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 14px;
+    background: var(--accent); color: var(--btn-ink); text-decoration: none;
+    padding: 14px 32px; border-radius: 999px; transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  #ats-root .trust-cta:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(var(--accent-rgb), 0.3); }
 
   #ats-root .site-footer {
     margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line);
@@ -363,7 +435,7 @@
     color: var(--ink-dim); cursor: pointer; transition: color 0.12s ease, border-color 0.12s ease;
   }
   #ats-root .platform-btn:hover { color: var(--ink); }
-  #ats-root .platform-btn.active { color: var(--accent); border-color: var(--accent); background: rgba(94,224,200,0.08); }
+  #ats-root .platform-btn.active { color: var(--accent); border-color: var(--accent); background: rgba(var(--accent-rgb), 0.08); }
   #ats-root .parse-sim { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
   @media (max-width: 720px) { #ats-root .parse-sim { grid-template-columns: 1fr; } }
   #ats-root .parse-field { border-bottom: 1px solid var(--line); padding: 8px 0; }
@@ -395,9 +467,9 @@
     font-family: 'IBM Plex Mono', monospace; font-size: 11px; border-radius: 6px;
     padding: 5px 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink-dim); cursor: pointer;
   }
-  #ats-root .outcome-select.set-interview, #ats-root .outcome-select.set-offer { color: var(--signal); border-color: rgba(61,220,132,0.35); }
-  #ats-root .outcome-select.set-rejected { color: var(--fail); border-color: rgba(255,84,112,0.35); }
-  #ats-root .outcome-select.set-no_response { color: var(--warn); border-color: rgba(245,166,35,0.35); }
+  #ats-root .outcome-select.set-interview, #ats-root .outcome-select.set-offer { color: var(--signal); border-color: rgba(var(--signal-rgb), 0.35); }
+  #ats-root .outcome-select.set-rejected { color: var(--fail); border-color: rgba(var(--fail-rgb), 0.35); }
+  #ats-root .outcome-select.set-no_response { color: var(--warn); border-color: rgba(var(--warn-rgb), 0.35); }
 
   /* --- Batch / bulk mode --- */
   #ats-root .batch-card { margin: 0 0 30px; }
@@ -429,7 +501,7 @@
     pointer-events: auto; max-width: 560px; width: 100%;
     display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
     padding: 18px 20px; background: var(--panel); border: 1px solid var(--line);
-    border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+    border-radius: 16px; box-shadow: 0 8px 30px var(--shadow);
   }
   #ats-root .cookie-text { flex: 1 1 320px; }
   #ats-root .cookie-title { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: var(--ink); }
@@ -440,7 +512,7 @@
     flex-shrink: 0; padding: 10px 24px; border-radius: 8px;
     font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit;
   }
-  #ats-root .cookie-accept { border: none; background: var(--accent); color: #06141A; }
+  #ats-root .cookie-accept { border: none; background: var(--accent); color: var(--btn-ink); }
   #ats-root .cookie-accept:hover { filter: brightness(1.1); }
   #ats-root .cookie-reject { border: 1px solid var(--line); background: transparent; color: var(--ink); }
   #ats-root .cookie-reject:hover { background: var(--panel-2); }
@@ -461,14 +533,14 @@ function Gauge({ score, label }) {
   const r = 60, c = 2 * Math.PI * r;
   const pct = Math.max(0, Math.min(100, score));
   const offset = c - (pct / 100) * c;
-  const color = pct >= 75 ? '#3DDC84' : pct >= 50 ? '#F5A623' : '#FF5470';
+  const color = pct >= 75 ? 'var(--signal)' : pct >= 50 ? 'var(--warn)' : 'var(--fail)';
   return (
     <div className="gauge">
       <svg width="140" height="140" viewBox="0 0 140 140">
-        <circle cx="70" cy="70" r={r} fill="none" stroke="#232E3A" strokeWidth="10" />
-        <circle cx="70" cy="70" r={r} fill="none" stroke={color} strokeWidth="10"
+        <circle cx="70" cy="70" r={r} fill="none" style={{ stroke: 'var(--line)' }} strokeWidth="10" />
+        <circle cx="70" cy="70" r={r} fill="none" strokeWidth="10"
           strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
+          style={{ stroke: color, transition: 'stroke-dashoffset 0.8s ease' }} />
       </svg>
       <div className="num">
         {pct}<small>{label || 'KEYWORD MATCH'}</small>
@@ -849,6 +921,24 @@ function applyConsent(choice) {
   }
 }
 
+// --- Theme (light by default, dark opt-in) --------------------------------
+// The toggle in the masthead persists the choice in localStorage. A blocking
+// script in <head> applies a saved 'dark' choice before first paint so
+// returning visitors never see a flash of the light theme.
+
+const THEME_KEY = 'resumechkr-theme';
+
+function loadTheme() {
+  try { return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'; } catch (e) { return 'light'; }
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* storage unavailable — skip silently */ }
+  const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeColorMeta) themeColorMeta.setAttribute('content', theme === 'dark' ? '#0B0F14' : '#F7F9FB');
+}
+
 // --- Resume file upload ---------------------------------------------------
 // Extraction happens entirely client-side (pdf.js / mammoth.js loaded from
 // a CDN on demand, only when a file is actually uploaded). The file itself
@@ -962,9 +1052,19 @@ function App() {
   const [cookieChoice, setCookieChoice] = useState(() => loadConsent());
   const [cookieBannerOpen, setCookieBannerOpen] = useState(() => !loadConsent());
 
+  const [theme, setTheme] = useState(() => loadTheme());
+
   useEffect(() => {
     if (cookieChoice) applyConsent(cookieChoice);
   }, []);
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
+  function toggleTheme() {
+    setTheme(t => (t === 'dark' ? 'light' : 'dark'));
+  }
 
   function chooseCookies(choice) {
     setCookieChoice(choice);
@@ -1219,9 +1319,12 @@ function App() {
     <div className="wrap">
       <div className="masthead">
         <div className="brand">
-          <h1><img className="brand-mark" src="logo-reversed.png" alt="ResumeChkr" /><span className="sr-only">ResumeChkr — Free ATS Resume Checker for Greenhouse, Workable &amp; Top ATS Platforms</span></h1>
+          <h1><img className="brand-mark" src={theme === 'dark' ? 'logo-reversed.png' : 'logo-primary.png'} alt="ResumeChkr" /><span className="sr-only">ResumeChkr — Free ATS Resume Checker for Greenhouse, Workable &amp; Top ATS Platforms</span></h1>
         </div>
         <div className="masthead-right">
+          <button className="theme-toggle" onClick={toggleTheme} aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+            {theme === 'dark' ? '☀ Light mode' : '☾ Dark mode'}
+          </button>
           <div className="tag">resume × job posting compatibility</div>
           <a className="patreon-link" href="https://patreon.com/MCXLABS?utm_medium=unknown&utm_source=join_link&utm_campaign=creatorshare_creator&utm_content=copyLink" target="_blank" rel="noopener noreferrer">♥ Support this project on Patreon</a>
         </div>
@@ -1317,7 +1420,7 @@ function App() {
         )}
       </div>
 
-      <div className="panes">
+      <div className="panes" id="scan-panes">
         <div className="pane">
           <label>Job Posting</label>
           <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
@@ -1782,6 +1885,31 @@ function App() {
           </div>
         </div>
       )}
+
+      <section className="trust-section">
+        <div className="trust-heading">
+          <h2>Why Job Seekers Trust<br /><span className="trust-brand">ResumeChkr</span></h2>
+          <p>No signup, no uploads, no catch — just a clear read on your resume before you hit apply.</p>
+        </div>
+        <div className="trust-grid">
+          <div className="trust-card">
+            <div className="trust-icon">🔒</div>
+            <div className="trust-stat">100%</div>
+            <div className="trust-label">Private by design — your resume never leaves your browser</div>
+          </div>
+          <div className="trust-card">
+            <div className="trust-icon">💸</div>
+            <div className="trust-stat">$0</div>
+            <div className="trust-label">Free, no signup — no account or email required to scan</div>
+          </div>
+          <div className="trust-card">
+            <div className="trust-icon">🧩</div>
+            <div className="trust-stat">3</div>
+            <div className="trust-label">ATS behaviors modeled — Greenhouse, Workday &amp; Workable, sourced from their own docs</div>
+          </div>
+        </div>
+        <a href="#scan-panes" className="trust-cta">Check Your Resume Free</a>
+      </section>
 
       <footer className="site-footer">
         <div className="footer-legal-links">
