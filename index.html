@@ -140,19 +140,19 @@
   #ats-root .wrap { max-width: 980px; margin: 0 auto; }
 
   #ats-root .masthead {
-    display: flex; align-items: baseline; justify-content: space-between;
+    display: flex; align-items: center; justify-content: space-between;
     background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px;
-    padding: 14px 20px; margin-bottom: 24px;
+    padding: 16px 20px; margin-bottom: 24px;
     flex-wrap: wrap; gap: 8px;
   }
   #ats-root .brand { display: flex; align-items: center; gap: 14px; }
   #ats-root .brand-mark {
-    height: 60px; width: auto; display: block; flex: 0 0 auto;
+    height: 84px; width: auto; display: block; flex: 0 0 auto;
     animation: brand-glow 2.4s ease-in-out infinite;
   }
   @keyframes brand-glow {
-    0%, 100% { filter: drop-shadow(0 0 2px rgba(var(--accent-rgb), 0.35)); }
-    50% { filter: drop-shadow(0 0 14px rgba(var(--accent-rgb), 0.85)); }
+    0%, 100% { filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), 0.5)); }
+    50% { filter: drop-shadow(0 0 16px rgba(var(--accent-rgb), 0.9)); }
   }
   @media (prefers-reduced-motion: reduce) {
     #ats-root .brand-mark { animation: none; }
